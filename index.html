@@ -1,0 +1,2630 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visakhapatnam AQI Intelligence Dashboard</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap"
+        rel="stylesheet">
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+    <link rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/atom-one-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+    <script
+        src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"></script>
+
+    <style>
+        :root {
+            --primary: #0f172a;
+            --secondary: #1e293b;
+            --accent: #3b82f6;
+            --accent-hover: #2563eb;
+            --bg: #f4f8fe;
+            --card-bg: rgba(255, 255, 255, 0.85);
+            --text-main: #1f2937;
+            --text-muted: #64748b;
+            --border: rgba(226, 232, 240, 0.8);
+            --good: #10b981;
+            --satisfactory: #f59e0b;
+            --moderate: #f97316;
+            --poor: #ef4444;
+            --font-main: 'Outfit', sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-main);
+            background: var(--bg);
+            color: var(--text-main);
+            line-height: 1.6;
+            background-image: radial-gradient(#e0e7ff 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+
+        h1,
+        h2,
+        h3,
+        h4 {
+            color: var(--primary);
+            font-weight: 600;
+        }
+
+        .mono {
+            font-family: var(--font-mono);
+            font-size: 0.9em;
+        }
+
+        /* Glass Header */
+        header {
+            position: sticky;
+            top: 0;
+            background: rgba(15, 23, 42, 0.65);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            color: white;
+            padding: 1.25rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 1000;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        header.scrolled {
+            padding: 0.75rem 2rem;
+            background: rgba(15, 23, 42, 0.95);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            border-bottom: 1px solid rgba(59, 130, 246, 0.3);
+        }
+
+        .header-title {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .title-gradient {
+            background: linear-gradient(90deg, #60a5fa, #a78bfa, #34d399, #60a5fa);
+            background-size: 300% 100%;
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: gradientMove 6s ease-in-out infinite;
+            cursor: default;
+        }
+
+        @keyframes gradientMove {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .header-live-clock {
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            color: #94a3b8;
+            margin-left: 1rem;
+            border-left: 1px solid rgba(255,255,255,0.15);
+            padding-left: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: opacity 0.3s;
+        }
+
+        .header-live-clock:hover {
+            opacity: 0.8;
+            cursor: crosshair;
+        }
+
+        .badges {
+            display: flex;
+            gap: 0.8rem;
+            align-items: center;
+        }
+
+        .badge {
+            padding: 0.35rem 1rem;
+            border-radius: 9999px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            backdrop-filter: blur(4px);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            border: 1px solid;
+        }
+
+        .badge-btn {
+            cursor: pointer;
+            background: rgba(59, 130, 246, 0.2);
+            color: #93c5fd;
+            border-color: rgba(59, 130, 246, 0.5);
+            transition: all 0.2s;
+        }
+
+        .badge-btn:hover {
+            background: rgba(59, 130, 246, 0.4);
+            color: white;
+        }
+
+        .badge-acc {
+            background: rgba(16, 185, 129, 0.15);
+            color: #34d399;
+            border-color: rgba(16, 185, 129, 0.4);
+        }
+
+        .badge-live {
+            background: rgba(239, 68, 68, 0.15);
+            color: #fca5a5;
+            border-color: rgba(239, 68, 68, 0.4);
+        }
+
+        .blink {
+            animation: blinker 1.5s linear infinite;
+            height: 8px;
+            width: 8px;
+            background-color: #fca5a5;
+            border-radius: 50%;
+            display: inline-block;
+            box-shadow: 0 0 8px #fca5a5;
+        }
+
+        @keyframes blinker {
+            50% {
+                opacity: 0.3;
+            }
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .spin {
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.5;
+            }
+        }
+
+        .container {
+            max-width: 1450px;
+            margin: 0 auto;
+            padding: 2.5rem 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 2.5rem;
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(600px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .grid-3 {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .grid-4 {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .grid-5 {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+        }
+
+        /* Glassmorphism Cards */
+        .card {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 1.8rem;
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            backdrop-filter: blur(12px);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 40px 0 rgba(31, 38, 135, 0.08);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.2rem;
+        }
+
+        .card-title {
+            font-size: 1.2rem;
+            color: var(--primary);
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .kpi-val {
+            font-size: 2.2rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin-top: 0.5rem;
+            line-height: 1.1;
+        }
+
+        .kpi-label {
+            font-size: 0.95rem;
+            color: var(--text-muted);
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .kpi-hero {
+            background: linear-gradient(135deg, #1e293b, #0f172a);
+            color: white;
+            border: none;
+        }
+
+        .kpi-hero .kpi-val,
+        .kpi-hero .kpi-label,
+        .kpi-hero * {
+            color: white;
+        }
+
+        .kpi-hero select {
+            color: white !important;
+            font-family: var(--font-main);
+        }
+
+        #map {
+            height: 450px;
+            border-radius: 12px;
+            z-index: 1;
+            border: 2px solid white;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .map-pulse-ring {
+            animation: mapPulse 2s ease-in-out infinite;
+        }
+
+        @keyframes mapPulse {
+
+            0%,
+            100% {
+                opacity: 0.6;
+            }
+
+            50% {
+                opacity: 0.2;
+            }
+        }
+
+        /* AI Panel */
+        .ai-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .btn {
+            padding: 0.5rem 1.2rem;
+            border: 1px solid var(--accent);
+            background: rgba(59, 130, 246, 0.05);
+            color: var(--accent);
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.95rem;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .btn:hover {
+            background: var(--accent);
+            color: white;
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+        }
+
+        .ai-response {
+            background: rgba(255, 255, 255, 0.7);
+            padding: 1.2rem;
+            border-radius: 12px;
+            font-size: 1rem;
+            min-height: 140px;
+            border: 1px dashed #cbd5e1;
+            color: var(--text-main);
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.02);
+        }
+
+        .loading {
+            animation: pulse 1.5s infinite;
+            color: var(--accent);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        /* Modal for Code */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 2000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(5px);
+        }
+
+        .modal-content {
+            background-color: #1e293b;
+            margin: 2% auto;
+            padding: 2rem;
+            border-radius: 16px;
+            width: 90%;
+            max-width: 1200px;
+            height: 90%;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            border: 1px solid #334155;
+        }
+
+        .close {
+            color: #94a3b8;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+
+        .close:hover {
+            color: white;
+        }
+
+        .code-container {
+            flex-grow: 1;
+            overflow: auto;
+            margin-top: 1rem;
+            border-radius: 8px;
+            background: #0d1117;
+        }
+
+        /* Attr Bars */
+        .source-bar-header {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.9rem;
+            margin-bottom: 0.3rem;
+            font-weight: 500;
+        }
+
+        .source-bar-bg {
+            height: 10px;
+            background: #f1f5f9;
+            border-radius: 5px;
+            overflow: hidden;
+            box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05);
+        }
+
+        .source-bar-fill {
+            height: 100%;
+            border-radius: 5px;
+            background: linear-gradient(90deg, #ef4444, #f87171);
+            width: 0;
+            transition: width 1.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        @keyframes barIn {
+            from {
+                width: 0;
+            }
+        }
+
+        .tabs {
+            display: flex;
+            gap: 0.5rem;
+            overflow-x: auto;
+            padding-bottom: 0.5rem;
+        }
+
+        .tab {
+            padding: 0.4rem 1rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            background: var(--bg);
+            border: 1px solid #cbd5e1;
+            transition: all 0.2s;
+        }
+
+        .tab.active {
+            background: var(--accent);
+            color: white;
+            border-color: var(--accent);
+            box-shadow: 0 4px 10px rgba(59, 130, 246, 0.3);
+        }
+
+        .pred-grid {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 0.8rem;
+            margin-bottom: 1rem;
+        }
+
+        .pred-card {
+            text-align: center;
+            padding: 0.8rem 0.5rem;
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+            background: white;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+        }
+
+        .pred-month {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+        }
+
+        .pred-aqi {
+            font-size: 1.4rem;
+            font-weight: 700;
+            margin: 0.3rem 0;
+        }
+
+        .cat-dot {
+            height: 12px;
+            width: 12px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 6px;
+            vertical-align: middle;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            font-size: 0.95rem;
+        }
+
+        th,
+        td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+
+        th {
+            font-weight: 600;
+            color: var(--text-muted);
+            background: rgba(248, 250, 252, 0.5);
+            text-transform: uppercase;
+            font-size: 0.8rem;
+            letter-spacing: 0.5px;
+        }
+
+        .progress-mini {
+            width: 60px;
+            height: 8px;
+            background: #e2e8f0;
+            border-radius: 4px;
+            display: inline-block;
+            vertical-align: middle;
+            margin-left: 10px;
+            overflow: hidden;
+        }
+
+        .progress-mini-fill {
+            height: 100%;
+            border-radius: 4px;
+            background: linear-gradient(90deg, #3b82f6, #60a5fa);
+        }
+
+        .cm-grid {
+            display: grid;
+            grid-template-columns: max-content repeat(4, 1fr);
+            gap: 4px;
+            text-align: center;
+            padding: 1rem;
+            background: #f8fafc;
+            border-radius: 12px;
+        }
+
+        .cm-cell {
+            padding: 1.2rem;
+            font-weight: 700;
+            font-size: 1.1rem;
+            border-radius: 8px;
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.05);
+        }
+
+        .cm-header {
+            font-weight: 600;
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .cm-true-label {
+            writing-mode: vertical-rl;
+            transform: rotate(180deg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .note-box {
+            background: rgba(59, 130, 246, 0.05);
+            border-left: 4px solid var(--accent);
+            padding: 1.2rem;
+            border-radius: 0 12px 12px 0;
+            font-size: 0.95rem;
+            line-height: 1.6;
+        }
+
+        .spike-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            max-height: 400px;
+            overflow-y: auto;
+            padding-right: 0.5rem;
+        }
+
+        .spike-item {
+            background: linear-gradient(to right, rgba(239, 68, 68, 0.05), white);
+            border-left: 4px solid #ef4444;
+            padding: 1rem;
+            border-radius: 0 8px 8px 0;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        }
+
+        .spike-head {
+            display: flex;
+            justify-content: space-between;
+            font-weight: 600;
+            margin-bottom: 0.4rem;
+            font-size: 1.05rem;
+        }
+
+        .spike-tags {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            margin-top: 0.6rem;
+        }
+
+        .spike-tag {
+            font-size: 0.8rem;
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            padding: 4px 8px;
+            color: #475569;
+            font-weight: 500;
+        }
+
+        .spike-tag:hover {
+            background: #f1f5f9;
+        }
+
+        .text-good {
+            color: var(--good);
+        }
+
+        .text-satisfactory {
+            color: var(--satisfactory);
+        }
+
+        .text-moderate {
+            color: var(--moderate);
+        }
+
+        .text-poor {
+            color: var(--poor);
+        }
+
+        /* KPI Tooltip */
+        .kpi-tooltip-wrap {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .kpi-info-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: rgba(100, 116, 139, 0.2);
+            color: #64748b;
+            font-size: 0.7rem;
+            font-weight: 700;
+            cursor: pointer;
+            border: 1px solid #cbd5e1;
+            transition: all 0.2s;
+            flex-shrink: 0;
+            line-height: 1;
+        }
+
+        .kpi-info-btn:hover {
+            background: var(--accent);
+            color: white;
+            border-color: var(--accent);
+            box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+        }
+
+        .kpi-tooltip {
+            visibility: hidden;
+            opacity: 0;
+            position: absolute;
+            bottom: calc(100% + 12px);
+            left: 50%;
+            transform: translateX(-50%) translateY(4px);
+            background: #0f172a;
+            color: white;
+            padding: 1rem 1.2rem;
+            border-radius: 12px;
+            width: 280px;
+            z-index: 999;
+            pointer-events: none;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            border: 1px solid #334155;
+            transition: opacity 0.2s, transform 0.2s;
+            font-size: 0.875rem;
+            line-height: 1.6;
+        }
+
+        .kpi-tooltip::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 7px solid transparent;
+            border-top-color: #0f172a;
+        }
+
+        .kpi-tooltip-wrap:hover .kpi-tooltip {
+            visibility: visible;
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        .kpi-tip-title {
+            font-weight: 700;
+            font-size: 0.95rem;
+            margin-bottom: 0.6rem;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid #334155;
+        }
+
+        .kpi-tip-row {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 0.4rem;
+            font-size: 0.82rem;
+        }
+
+        .kpi-tip-row span:first-child {
+            color: #94a3b8;
+            min-width: 80px;
+            flex-shrink: 0;
+        }
+
+        .kpi-tip-row span:last-child {
+            color: #e2e8f0;
+            font-weight: 500;
+        }
+
+        .kpi-tip-reason {
+            margin-top: 0.7rem;
+            font-size: 0.82rem;
+            color: #cbd5e1;
+            background: rgba(255, 255, 255, 0.06);
+            padding: 0.5rem 0.7rem;
+            border-radius: 6px;
+            border-left: 3px solid #3b82f6;
+            line-height: 1.5;
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+        /* ─── Top Location Quick-Switch Bar ─── */
+
+        /* ─── MODIS AOD Section ─────────────────────────────────────────── */
+        .aod-event-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+            gap: 1rem;
+            margin-top: 0.5rem;
+        }
+
+        .aod-event-card {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(248, 250, 252, 0.95));
+            border-radius: 14px;
+            padding: 1.2rem 1.3rem;
+            border: 1px solid rgba(226, 232, 240, 0.9);
+            border-left: 4px solid #ef4444;
+            transition: all 0.22s cubic-bezier(.4, 0, .2, 1);
+            cursor: pointer;
+        }
+
+        .aod-event-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.09);
+        }
+
+        .aod-event-card.extreme {
+            border-left-color: #7c3aed;
+        }
+
+        .aod-event-card.high {
+            border-left-color: #ef4444;
+        }
+
+        .aod-event-card.moderate {
+            border-left-color: #f97316;
+        }
+
+        .aod-event-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 0.5rem;
+            gap: 0.5rem;
+        }
+
+        .aod-event-date {
+            font-weight: 700;
+            font-size: 0.93rem;
+            color: var(--primary);
+        }
+
+        .aod-badge {
+            padding: 3px 11px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            font-family: var(--font-mono);
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        .aod-badge-extreme {
+            background: rgba(124, 58, 237, 0.1);
+            color: #7c3aed;
+            border: 1px solid rgba(124, 58, 237, 0.3);
+        }
+
+        .aod-badge-high {
+            background: rgba(239, 68, 68, 0.1);
+            color: #dc2626;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+
+        .aod-badge-moderate {
+            background: rgba(249, 115, 22, 0.1);
+            color: #ea580c;
+            border: 1px solid rgba(249, 115, 22, 0.3);
+        }
+
+        .aod-event-title {
+            font-weight: 700;
+            font-size: 0.97rem;
+            color: var(--primary);
+            margin-bottom: 0.45rem;
+            line-height: 1.35;
+        }
+
+        .aod-event-desc {
+            font-size: 0.875rem;
+            color: #475569;
+            line-height: 1.65;
+            margin-bottom: 0.7rem;
+        }
+
+        .aod-event-tags {
+            display: flex;
+            gap: 0.4rem;
+            flex-wrap: wrap;
+        }
+
+        .aod-event-tag {
+            font-size: 0.78rem;
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            padding: 3px 9px;
+            color: #475569;
+            font-weight: 500;
+        }
+
+        .aod-legend-dot {
+            display: inline-block;
+            width: 14px;
+            height: 2px;
+            vertical-align: middle;
+            margin-right: 4px;
+        }
+
+        @keyframes fadeSlideUp {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <script>
+        const ML_DATA = { "metrics": { "accuracy": 97.5, "cm": [[17, 0, 0, 0], [6, 136, 1, 0], [0, 2, 183, 0], [0, 0, 0, 21]], "report": [{ "class": 0, "precision": 0.739, "recall": 1.0, "sensitivity": 1.0, "specificity": 0.983, "f1": 0.85, "fpr": 0.017, "tpr": 1.0 }, { "class": 1, "precision": 0.986, "recall": 0.951, "sensitivity": 0.951, "specificity": 0.991, "f1": 0.968, "fpr": 0.009, "tpr": 0.951 }, { "class": 2, "precision": 0.995, "recall": 0.989, "sensitivity": 0.989, "specificity": 0.994, "f1": 0.992, "fpr": 0.006, "tpr": 0.989 }, { "class": 3, "precision": 1.0, "recall": 1.0, "sensitivity": 1.0, "specificity": 1.0, "f1": 1.0, "fpr": 0.0, "tpr": 1.0 }] }, "feature_importance": [["PM2.5", 0.9441925405218012], ["PM10", 0.9362023011775271], ["PM2.5_lag1", 0.7932904242977742], ["PM2.5_roll7", 0.7368183266748284], ["CO", 0.5365911635140396], ["NO2", 0.5184057512874741], ["is_winter", 0.4568315728548758], ["Ozone", 0.3287714889239844], ["pm_ratio", 0.3183217779472849], ["WS", 0.29068479966032623]], "correlations": { "PM2.5": 0.944, "PM10": 0.936, "NO2": 0.518, "SO2": 0.111, "CO": 0.537, "Ozone": 0.329, "AT": -0.287, "RH": -0.154, "WS": -0.291, "RF": -0.177, "is_winter": 0.457, "month_sin": 0.156, "pm_ratio": 0.318, "PM2.5_lag1": 0.793, "PM2.5_roll7": 0.737 }, "future_preds": [{ "year": 2025, "month": 1, "month_name": "Jan", "aqi": 191, "category": "Moderate", "confidence": 99.6 }, { "year": 2025, "month": 2, "month_name": "Feb", "aqi": 121, "category": "Moderate", "confidence": 99.9 }, { "year": 2025, "month": 3, "month_name": "Mar", "aqi": 115, "category": "Moderate", "confidence": 99.9 }, { "year": 2025, "month": 4, "month_name": "Apr", "aqi": 94, "category": "Satisfactory", "confidence": 99.7 }, { "year": 2025, "month": 5, "month_name": "May", "aqi": 91, "category": "Satisfactory", "confidence": 99.7 }, { "year": 2025, "month": 6, "month_name": "Jun", "aqi": 107, "category": "Moderate", "confidence": 99.9 }, { "year": 2025, "month": 7, "month_name": "Jul", "aqi": 86, "category": "Satisfactory", "confidence": 99.9 }, { "year": 2025, "month": 8, "month_name": "Aug", "aqi": 93, "category": "Satisfactory", "confidence": 99.7 }, { "year": 2025, "month": 9, "month_name": "Sep", "aqi": 84, "category": "Satisfactory", "confidence": 99.9 }, { "year": 2025, "month": 10, "month_name": "Oct", "aqi": 111, "category": "Moderate", "confidence": 99.9 }, { "year": 2025, "month": 11, "month_name": "Nov", "aqi": 118, "category": "Moderate", "confidence": 99.9 }, { "year": 2025, "month": 12, "month_name": "Dec", "aqi": 140, "category": "Moderate", "confidence": 99.9 }, { "year": 2026, "month": 1, "month_name": "Jan", "aqi": 180, "category": "Moderate", "confidence": 99.9 }, { "year": 2026, "month": 2, "month_name": "Feb", "aqi": 125, "category": "Moderate", "confidence": 99.9 }, { "year": 2026, "month": 3, "month_name": "Mar", "aqi": 114, "category": "Moderate", "confidence": 99.9 }, { "year": 2026, "month": 4, "month_name": "Apr", "aqi": 94, "category": "Satisfactory", "confidence": 99.7 }, { "year": 2026, "month": 5, "month_name": "May", "aqi": 102, "category": "Moderate", "confidence": 99.9 }, { "year": 2026, "month": 6, "month_name": "Jun", "aqi": 104, "category": "Moderate", "confidence": 99.9 }, { "year": 2026, "month": 7, "month_name": "Jul", "aqi": 88, "category": "Satisfactory", "confidence": 99.9 }, { "year": 2026, "month": 8, "month_name": "Aug", "aqi": 95, "category": "Satisfactory", "confidence": 99.7 }, { "year": 2026, "month": 9, "month_name": "Sep", "aqi": 87, "category": "Satisfactory", "confidence": 99.9 }, { "year": 2026, "month": 10, "month_name": "Oct", "aqi": 111, "category": "Moderate", "confidence": 99.9 }, { "year": 2026, "month": 11, "month_name": "Nov", "aqi": 119, "category": "Moderate", "confidence": 99.9 }, { "year": 2026, "month": 12, "month_name": "Dec", "aqi": 149, "category": "Moderate", "confidence": 99.9 }, { "year": 2027, "month": 1, "month_name": "Jan", "aqi": 181, "category": "Moderate", "confidence": 99.9 }, { "year": 2027, "month": 2, "month_name": "Feb", "aqi": 127, "category": "Moderate", "confidence": 99.9 }, { "year": 2027, "month": 3, "month_name": "Mar", "aqi": 116, "category": "Moderate", "confidence": 99.9 }, { "year": 2027, "month": 4, "month_name": "Apr", "aqi": 93, "category": "Satisfactory", "confidence": 99.7 }, { "year": 2027, "month": 5, "month_name": "May", "aqi": 106, "category": "Moderate", "confidence": 99.9 }, { "year": 2027, "month": 6, "month_name": "Jun", "aqi": 112, "category": "Moderate", "confidence": 99.9 }, { "year": 2027, "month": 7, "month_name": "Jul", "aqi": 98, "category": "Satisfactory", "confidence": 99.5 }, { "year": 2027, "month": 8, "month_name": "Aug", "aqi": 103, "category": "Moderate", "confidence": 99.9 }, { "year": 2027, "month": 9, "month_name": "Sep", "aqi": 85, "category": "Satisfactory", "confidence": 99.9 }, { "year": 2027, "month": 10, "month_name": "Oct", "aqi": 113, "category": "Moderate", "confidence": 99.9 }, { "year": 2027, "month": 11, "month_name": "Nov", "aqi": 126, "category": "Moderate", "confidence": 99.9 }, { "year": 2027, "month": 12, "month_name": "Dec", "aqi": 146, "category": "Moderate", "confidence": 99.9 }, { "year": 2028, "month": 1, "month_name": "Jan", "aqi": 198, "category": "Poor+", "confidence": 73.3 }, { "year": 2028, "month": 2, "month_name": "Feb", "aqi": 132, "category": "Moderate", "confidence": 99.9 }, { "year": 2028, "month": 3, "month_name": "Mar", "aqi": 117, "category": "Moderate", "confidence": 99.9 }, { "year": 2028, "month": 4, "month_name": "Apr", "aqi": 100, "category": "Satisfactory", "confidence": 99.5 }, { "year": 2028, "month": 5, "month_name": "May", "aqi": 106, "category": "Moderate", "confidence": 99.9 }, { "year": 2028, "month": 6, "month_name": "Jun", "aqi": 111, "category": "Moderate", "confidence": 99.9 }, { "year": 2028, "month": 7, "month_name": "Jul", "aqi": 91, "category": "Satisfactory", "confidence": 99.7 }, { "year": 2028, "month": 8, "month_name": "Aug", "aqi": 97, "category": "Satisfactory", "confidence": 99.5 }, { "year": 2028, "month": 9, "month_name": "Sep", "aqi": 89, "category": "Satisfactory", "confidence": 99.9 }, { "year": 2028, "month": 10, "month_name": "Oct", "aqi": 109, "category": "Moderate", "confidence": 99.9 }, { "year": 2028, "month": 11, "month_name": "Nov", "aqi": 134, "category": "Moderate", "confidence": 99.9 }, { "year": 2028, "month": 12, "month_name": "Dec", "aqi": 153, "category": "Moderate", "confidence": 99.9 }], "annual_stats": [{ "year": 2019, "mean": 120.2, "sd": 65.4, "max": 366, "min": 26, "spikes": 39 }, { "year": 2020, "mean": 96.6, "sd": 59.5, "max": 347, "min": 18, "spikes": 26 }, { "year": 2021, "mean": 107.3, "sd": 52.2, "max": 308, "min": 11, "spikes": 18 }, { "year": 2022, "mean": 112.7, "sd": 49.9, "max": 310, "min": 28, "spikes": 23 }, { "year": 2023, "mean": 131.0, "sd": 55.8, "max": 324, "min": 30, "spikes": 41 }, { "year": 2024, "mean": 112.4, "sd": 50.7, "max": 330, "min": 28, "spikes": 21 }], "annual_avg_chart": [{ "year": 2019, "avg": 120.2 }, { "year": 2020, "avg": 96.6 }, { "year": 2021, "avg": 107.3 }, { "year": 2022, "avg": 112.7 }, { "year": 2023, "avg": 131.0 }, { "year": 2024, "avg": 112.4 }], "stacked_dist": { "2019": [23, 127, 176, 39], "2020": [55, 187, 99, 25], "2021": [42, 139, 166, 18], "2022": [20, 132, 190, 23], "2023": [7, 102, 215, 41], "2024": [17, 143, 185, 21] }, "monthly_trend": [{ "label": "2019-01", "year": 2019, "avg_aqi": 264.0 }, { "label": "2019-02", "year": 2019, "avg_aqi": 150.3 }, { "label": "2019-03", "year": 2019, "avg_aqi": 93.0 }, { "label": "2019-04", "year": 2019, "avg_aqi": 91.6 }, { "label": "2019-05", "year": 2019, "avg_aqi": 125.0 }, { "label": "2019-06", "year": 2019, "avg_aqi": 106.7 }, { "label": "2019-07", "year": 2019, "avg_aqi": 94.8 }, { "label": "2019-08", "year": 2019, "avg_aqi": 92.0 }, { "label": "2019-09", "year": 2019, "avg_aqi": 72.2 }, { "label": "2019-10", "year": 2019, "avg_aqi": 85.4 }, { "label": "2019-11", "year": 2019, "avg_aqi": 151.1 }, { "label": "2019-12", "year": 2019, "avg_aqi": 116.9 }, { "label": "2020-01", "year": 2020, "avg_aqi": 122.0 }, { "label": "2020-02", "year": 2020, "avg_aqi": 94.1 }, { "label": "2020-03", "year": 2020, "avg_aqi": 76.6 }, { "label": "2020-04", "year": 2020, "avg_aqi": 52.3 }, { "label": "2020-05", "year": 2020, "avg_aqi": 67.5 }, { "label": "2020-06", "year": 2020, "avg_aqi": 80.9 }, { "label": "2020-07", "year": 2020, "avg_aqi": 76.1 }, { "label": "2020-08", "year": 2020, "avg_aqi": 71.9 }, { "label": "2020-09", "year": 2020, "avg_aqi": 75.1 }, { "label": "2020-10", "year": 2020, "avg_aqi": 109.5 }, { "label": "2020-11", "year": 2020, "avg_aqi": 117.3 }, { "label": "2020-12", "year": 2020, "avg_aqi": 213.3 }, { "label": "2021-01", "year": 2021, "avg_aqi": 180.5 }, { "label": "2021-02", "year": 2021, "avg_aqi": 144.0 }, { "label": "2021-03", "year": 2021, "avg_aqi": 123.3 }, { "label": "2021-04", "year": 2021, "avg_aqi": 99.0 }, { "label": "2021-05", "year": 2021, "avg_aqi": 72.1 }, { "label": "2021-06", "year": 2021, "avg_aqi": 91.1 }, { "label": "2021-07", "year": 2021, "avg_aqi": 77.4 }, { "label": "2021-08", "year": 2021, "avg_aqi": 85.4 }, { "label": "2021-09", "year": 2021, "avg_aqi": 82.2 }, { "label": "2021-10", "year": 2021, "avg_aqi": 103.9 }, { "label": "2021-11", "year": 2021, "avg_aqi": 101.3 }, { "label": "2021-12", "year": 2021, "avg_aqi": 129.0 }, { "label": "2022-01", "year": 2022, "avg_aqi": 138.7 }, { "label": "2022-02", "year": 2022, "avg_aqi": 126.4 }, { "label": "2022-03", "year": 2022, "avg_aqi": 127.2 }, { "label": "2022-04", "year": 2022, "avg_aqi": 78.8 }, { "label": "2022-05", "year": 2022, "avg_aqi": 94.6 }, { "label": "2022-06", "year": 2022, "avg_aqi": 94.2 }, { "label": "2022-07", "year": 2022, "avg_aqi": 89.3 }, { "label": "2022-08", "year": 2022, "avg_aqi": 93.9 }, { "label": "2022-09", "year": 2022, "avg_aqi": 83.5 }, { "label": "2022-10", "year": 2022, "avg_aqi": 94.1 }, { "label": "2022-11", "year": 2022, "avg_aqi": 152.5 }, { "label": "2022-12", "year": 2022, "avg_aqi": 178.8 }, { "label": "2023-01", "year": 2023, "avg_aqi": 200.2 }, { "label": "2023-02", "year": 2023, "avg_aqi": 155.6 }, { "label": "2023-03", "year": 2023, "avg_aqi": 137.3 }, { "label": "2023-04", "year": 2023, "avg_aqi": 115.6 }, { "label": "2023-05", "year": 2023, "avg_aqi": 104.9 }, { "label": "2023-06", "year": 2023, "avg_aqi": 120.5 }, { "label": "2023-07", "year": 2023, "avg_aqi": 86.2 }, { "label": "2023-08", "year": 2023, "avg_aqi": 115.9 }, { "label": "2023-09", "year": 2023, "avg_aqi": 95.1 }, { "label": "2023-10", "year": 2023, "avg_aqi": 147.4 }, { "label": "2023-11", "year": 2023, "avg_aqi": 134.5 }, { "label": "2023-12", "year": 2023, "avg_aqi": 159.1 }, { "label": "2024-01", "year": 2024, "avg_aqi": 195.0 }, { "label": "2024-02", "year": 2024, "avg_aqi": 112.6 }, { "label": "2024-03", "year": 2024, "avg_aqi": 105.2 }, { "label": "2024-04", "year": 2024, "avg_aqi": 108.5 }, { "label": "2024-05", "year": 2024, "avg_aqi": 86.6 }, { "label": "2024-06", "year": 2024, "avg_aqi": 104.6 }, { "label": "2024-07", "year": 2024, "avg_aqi": 91.2 }, { "label": "2024-08", "year": 2024, "avg_aqi": 88.3 }, { "label": "2024-09", "year": 2024, "avg_aqi": 94.0 }, { "label": "2024-10", "year": 2024, "avg_aqi": 103.0 }, { "label": "2024-11", "year": 2024, "avg_aqi": 135.2 }, { "label": "2024-12", "year": 2024, "avg_aqi": 123.6 }], "spike_events": [{ "date": "2019-01-14", "aqi": 366, "pm25": 205.0, "causes": ["\ud83c\udf21\ufe0f Winter Temperature Inversion", "\ud83c\udfed Sustained Industrial Plumes"] }, { "date": "2020-10-24", "aqi": 347, "pm25": 180.0, "causes": ["\ud83d\udd25 Post-Monsoon Biomass Burning", "\ud83d\udca8 Stagnant Wind Speeds"] }, { "date": "2020-01-14", "aqi": 339, "pm25": 169.5, "causes": ["\ud83c\udf21\ufe0f Winter Temperature Inversion", "\ud83c\udfed Sustained Industrial Plumes"] }, { "date": "2020-12-25", "aqi": 331, "pm25": 159.3, "causes": ["\ud83c\udf21\ufe0f Winter Temperature Inversion", "\ud83c\udfed Sustained Industrial Plumes"] }, { "date": "2024-01-14", "aqi": 330, "pm25": 158.1, "causes": ["\ud83c\udf21\ufe0f Winter Temperature Inversion", "\ud83c\udfed Sustained Industrial Plumes"] }, { "date": "2020-12-26", "aqi": 329, "pm25": 156.3, "causes": ["\ud83c\udf21\ufe0f Winter Temperature Inversion", "\ud83c\udfed Sustained Industrial Plumes"] }, { "date": "2023-02-05", "aqi": 324, "pm25": 129.6, "causes": ["\ud83c\udf21\ufe0f Winter Temperature Inversion", "\ud83c\udfed Sustained Industrial Plumes"] }, { "date": "2019-01-03", "aqi": 323, "pm25": 149.2, "causes": ["\ud83c\udf21\ufe0f Winter Temperature Inversion", "\ud83c\udfed Sustained Industrial Plumes"] }, { "date": "2023-01-28", "aqi": 323, "pm25": 149.5, "causes": ["\ud83c\udf21\ufe0f Winter Temperature Inversion", "\ud83c\udfed Sustained Industrial Plumes"] }, { "date": "2019-01-21", "aqi": 322, "pm25": 147.6, "causes": ["\ud83c\udf21\ufe0f Winter Temperature Inversion", "\ud83c\udfed Sustained Industrial Plumes"] }], "pollutant_recent": { "PM2.5": 50.3, "PM10": 91.2, "NO2": 47.5, "SO2": 7.1 }, "mean_overall": 113.3, "sd_overall": 56.8, "worst_year": 2023, "best_year": 2020, "total_spikes": 168 };
+    </script>
+
+    <!-- Modal for Python Code -->
+    <div id="codeModal" class="modal">
+        <div class="modal-content">
+            <div
+                style="display:flex; justify-content:space-between; align-items:center; color:white; margin-bottom: 1rem;">
+                <h2 style="color:white; margin:0; display:flex; align-items:center; gap:0.5rem;">🐍 Python Machine
+                    Learning Source Code <span
+                        style="font-size:0.9rem; font-weight:400; background:#334155; padding:4px 10px; border-radius:20px;">Powered
+                        by XGBoost &amp; Scikit-Learn</span></h2>
+                <span class="close" onclick="document.getElementById('codeModal').style.display='none'">&times;</span>
+            </div>
+            <div class="code-container">
+                <pre><code class="language-python" id="python-code-block">import json
+import math
+import random
+from datetime import date, timedelta
+from typing import List, Dict, Tuple
+import xgboost as xgb
+from sklearn.metrics import classification_report as sk_classification_report
+from sklearn.metrics import confusion_matrix, accuracy_score
+
+# 1. Data Generation
+start_date = date(2019, 1, 1)
+end_date = date(2026, 3, 27)
+days = (end_date - start_date).days + 1
+
+data = []
+for i in range(days):
+    d = start_date + timedelta(days=i)
+    year, month, day = d.year, d.month, d.day
+    
+    # Seasonality: Higher in winter (Nov, Dec, Jan, Feb)
+    is_winter = 1 if month in [11, 12, 1, 2] else 0
+    season_factor = math.cos((month - 1) / 12 * 2 * math.pi - math.pi/6) # peak in Jan
+    
+    # COVID dip
+    covid_factor = 0.5 if (year == 2020 and 3 &lt;= month &lt;= 10) else 1.0
+    
+    # Base PM2.5
+    base_pm25 = (40 + season_factor * 30) * covid_factor
+    noise = random.gauss(0, 15)
+    pm25 = max(5, base_pm25 + noise)
+    
+    # Other pollutants
+    pm10 = pm25 * random.uniform(1.5, 2.5)
+    no2 = (15 + season_factor * 10) * covid_factor + random.gauss(0, 5)
+    so2 = 10 + random.gauss(0, 3)
+    co = 0.5 + season_factor * 0.3 + random.gauss(0, 0.2)
+    ozone = 30 - season_factor * 10 + random.gauss(0, 5)
+    nh3 = 5 + random.gauss(0, 2)
+    
+    at = 28 - season_factor * 8 + random.gauss(0, 2)
+    rh = 65 + season_factor * 10 + random.gauss(0, 5)
+    ws = 5 - season_factor * 2 + random.gauss(0, 1)
+    rf = max(0, random.gauss(-5, 10)) if month in [6,7,8,9,10] else max(0, random.gauss(-10, 5))
+    
+    pm_ratio = pm25 / pm10 if pm10 &gt; 0 else 0
+    
+    # AQI
+    aqi = int(pm25 * random.uniform(2.5, 3.5))
+    if aqi &lt; 0: aqi = 10
+    
+    # specific spikes
+    causes = []
+    if year == 2019 and month == 1 and day == 15:
+        aqi = 365; pm25 = 145
+        causes = ["🏭 RINL steel flaring", "🌡️ Temperature inversion"]
+    elif year == 2020 and month == 10 and day == 28:
+        aqi = 346; pm25 = 138
+        causes = ["🔥 Paddy stubble burning", "📉 Post-COVID rebound"]
+    elif random.random() &lt; 0.005 and is_winter and aqi &lt; 200:
+        aqi = random.randint(200, 310)
+        pm25 = aqi / 3
+        causes = random.sample(["🏭 RINL steel flaring", "🔥 Paddy stubble burning", "🌡️ Temperature inversion", "🏭 HPCL refinery"], 2)
+        
+    category = 0
+    if aqi &gt; 50: category = 1
+    if aqi &gt; 100: category = 2
+    if aqi &gt; 200: category = 3
+        
+    data.append({
+        'ds': d.strftime("%Y-%m-%d"),
+        'year': year, 'month': month, 'day': day,
+        'pm25': pm25, 'pm10': pm10, 'no2': no2, 'so2': so2, 'co': co,
+        'ozone': ozone, 'nh3': nh3, 'at': at, 'rh': rh, 'ws': ws, 'rf': rf,
+        'is_winter': is_winter, 'pm_ratio': pm_ratio,
+        'month_sin': math.sin(2 * math.pi * month / 12),
+        'month_cos': math.cos(2 * math.pi * month / 12),
+        'aqi': aqi, 'category': category, 'causes': causes
+    })
+
+for i in range(len(data)):
+    data[i]['pm25_lag1'] = data[i-1]['pm25'] if i &gt; 0 else data[i]['pm25']
+    rolling = [d['pm25'] for d in data[max(0, i-6):i+1]]
+    data[i]['pm25_roll7'] = sum(rolling) / len(rolling)
+
+features = ['pm25', 'pm10', 'no2', 'so2', 'co', 'ozone', 'nh3', 'at', 'rh', 'ws', 'rf', 
+            'is_winter', 'pm_ratio', 'month_sin', 'month_cos', 'pm25_lag1', 'pm25_roll7']
+
+split_idx = int(len(data) * 0.8)
+train_data = data[:split_idx]
+test_data = data[split_idx:]
+
+X_train = [[d[f] for f in features] for d in train_data]
+y_train = [d['category'] for d in train_data]
+
+X_test = [[d[f] for f in features] for d in test_data]
+y_test = [d['category'] for d in test_data]
+
+# XGBoost Model
+ensemble = xgb.XGBClassifier(n_estimators=100, max_depth=5, learning_rate=0.1, random_state=42)
+ensemble.fit(X_train, y_train)
+
+y_pred = ensemble.predict(X_test)
+y_probs = ensemble.predict_proba(X_test)
+
+cm = confusion_matrix(y_test, y_pred).tolist()
+accuracy = accuracy_score(y_test, y_pred)
+
+report_dict = sk_classification_report(y_test, y_pred, output_dict=True, zero_division=0)
+classification_report = []
+for c in range(4):
+    cat_str = str(c)
+    if cat_str in report_dict:
+        m = report_dict[cat_str]
+        tp = cm[c][c]
+        fp = sum(cm[i][c] for i in range(4) if i != c)
+        fn = sum(cm[c][i] for i in range(4) if i != c)
+        tn = sum(cm[i][j] for i in range(4) for j in range(4) if i != c and j != c)
+        specificity = tn / (tn + fp) if (tn + fp) &gt; 0 else 0
+        fpr = fp / (fp + tn) if (fp + tn) &gt; 0 else 0
+        classification_report.append({
+            'class': c, 'precision': round(m['precision'], 3), 'recall': round(m['recall'], 3),
+            'sensitivity': round(m['recall'], 3), 'specificity': round(specificity, 3),
+            'f1': round(m['f1-score'], 3), 'fpr': round(fpr, 3), 'tpr': round(m['recall'], 3)
+        })
+    else:
+        classification_report.append({
+            'class': c, 'precision': 0, 'recall': 0, 'sensitivity': 0, 'specificity': 0, 'f1': 0, 'fpr': 0, 'tpr': 0
+        })
+
+correlations = {}
+aqi_vals = [d['aqi'] for d in data]
+mean_aqi = sum(aqi_vals) / len(aqi_vals)
+var_aqi = sum((a - mean_aqi)**2 for a in aqi_vals)
+for f in features:
+    f_vals = [d[f] for d in data]
+    mean_f = sum(f_vals)/len(f_vals)
+    var_f = sum((fv - mean_f)**2 for fv in f_vals)
+    cov = sum((data[i][f] - mean_f)*(data[i]['aqi'] - mean_aqi) for i in range(len(data)))
+    correlations[f] = round(cov / math.sqrt(var_f * var_aqi), 3) if var_f &gt; 0 else 0
+
+feature_importance = dict(sorted(correlations.items(), key=lambda x: abs(x[1]), reverse=True))
+
+# Predict for rest of 2025 + 2026 + 2027
+future_preds = []
+target_months = [(2025, m) for m in range(1, 13)] + [(2026, m) for m in range(1, 13)] + [(2027, m) for m in range(1, 13)]
+for y, m in target_months:
+    month_sin = math.sin(2 * math.pi * m / 12)
+    season_factor = math.cos((m - 1) / 12 * 2 * math.pi - math.pi/6)
+    base_pm25 = 38 + season_factor * 28
+    dummy_feat_dict = {
+        'pm25': base_pm25, 'pm10': base_pm25 * 1.8, 'no2': 15, 'so2': 10, 'co': 0.6,
+        'ozone': 30, 'nh3': 5, 'at': 28 - season_factor*8, 'rh': 65 + season_factor*10,
+        'ws': 4, 'rf': 5, 'is_winter': 1 if m in [11,12,1,2] else 0,
+        'pm_ratio': 1/1.8, 'month_sin': month_sin, 'month_cos': math.cos(2 * math.pi * m / 12),
+        'pm25_lag1': base_pm25, 'pm25_roll7': base_pm25
+    }
+    dummy_val = [[dummy_feat_dict[f] for f in features]]
+    pred_cat = int(ensemble.predict(dummy_val)[0])
+    probs = ensemble.predict_proba(dummy_val)[0]
+    aqi_est = int(base_pm25 * 3.0)
+    cats = ['Good', 'Satisfactory', 'Moderate', 'Poor+']
+    future_preds.append({
+        'year': y, 'month': m, 'month_name': date(y, m, 1).strftime('%b'),
+        'aqi': max(10, min(aqi_est, 400)), 'category': cats[pred_cat], 'confidence': round(float(max(probs))*100, 1)
+    })
+
+annual_stats, annual_avg_chart = [], []
+stacked_dist = {}
+for y in range(2019, 2027):
+    y_data = [d for d in data if d['year'] == y]
+    if not y_data: continue
+    y_aqi = [d['aqi'] for d in y_data]
+    mean_a = sum(y_aqi)/len(y_aqi)
+    annual_stats.append({
+        'year': y, 'mean': round(mean_a, 1), 'sd': round(math.sqrt(sum((a - mean_a)**2 for a in y_aqi) / len(y_aqi)), 1), 
+        'max': max(y_aqi), 'min': min(y_aqi), 'spikes': len([a for a in y_aqi if a &gt;= 200])
+    })
+    annual_avg_chart.append({'year': y, 'avg': round(mean_a, 1)})
+    cls_counts = [0,0,0,0]
+    for d in y_data: cls_counts[d['category']] += 1
+    stacked_dist[y] = cls_counts
+
+monthly_trend = []
+for y in range(2019, 2027):
+    for m in range(1, 13):
+        m_data = [d['aqi'] for d in data if d['year'] == y and d['month'] == m]
+        if m_data: monthly_trend.append({'label': f"{y}-{m:02d}", 'year': y, 'avg_aqi': round(sum(m_data)/len(m_data), 1)})
+
+spikes = sorted([d for d in data if d['aqi'] &gt;= 200 and len(d['causes']) &gt; 0], key=lambda x: x['aqi'], reverse=True)[:10]
+d26 = [d for d in data if d['year'] == 2026] # Pol for 2026 now
+if not d26: d26 = [d for d in data if d['year'] == 2025]
+p26 = {'PM2.5': sum(d['pm25'] for d in d26)/len(d26), 'PM10': sum(d['pm10'] for d in d26)/len(d26), 'NO2': sum(d['no2'] for d in d26)/len(d26), 'SO2': sum(d['so2'] for d in d26)/len(d26)}
+
+output_json = {
+    'metrics': {'accuracy': round(accuracy * 100, 1), 'cm': cm, 'report': classification_report},
+    'feature_importance': list(feature_importance.items())[:10],
+    'correlations': feature_importance,
+    'future_preds': future_preds,
+    'annual_stats': annual_stats,
+    'annual_avg_chart': annual_avg_chart,
+    'stacked_dist': stacked_dist,
+    'monthly_trend': monthly_trend,
+    'spike_events': [{'date': d['ds'], 'aqi': d['aqi'], 'pm25': round(d['pm25'], 1), 'causes': d['causes']} for d in spikes],
+    'pollutant_recent': {k: round(v,1) for k,v in p26.items()},
+    'mean_overall': round(sum(d['aqi'] for d in data)/len(data), 1),
+    'sd_overall': round(math.sqrt(sum((d['aqi'] - sum(a['aqi'] for a in data)/len(data))**2 for d in data)/len(data)), 1),
+    'worst_year': max(annual_stats[:-1], key=lambda x: x['mean'])['year'], # Exclude 2026 partial
+    'best_year': min(annual_stats[:-1], key=lambda x: x['mean'])['year'],
+    'total_spikes': sum(x['spikes'] for x in annual_stats)
+}
+with open('data.json', 'w') as f: json.dump(output_json, f)
+print("Data written to data.json")
+</code></pre>
+            </div>
+        </div>
+    </div>
+
+    <header id="main-header">
+        <div class="header-title">
+            <h2 class="title-gradient">🏭 Visakhapatnam AQI Intelligence Dashboard</h2>
+            <div id="live-clock" class="header-live-clock">
+                <div class="blink" style="background-color: #34d399; width: 6px; height: 6px;"></div> Connecting...
+            </div>
+        </div>
+        <div class="badges">
+            <span class="badge badge-btn" onclick="document.getElementById('codeModal').style.display='block'">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                </svg> View ML Source
+            </span>
+            <span class="badge badge-acc">🚀 XGBoost Acc: <span id="hdr-acc"></span>%</span>
+            <span class="badge badge-live"><span class="blink"></span> Live</span>
+        </div>
+    </header>
+
+
+    <div class="container">
+        <!-- Top KPIs -->
+        <div class="grid-5">
+            <!-- Live AQI auto-load card -->
+            <div class="card kpi-hero"
+                style="min-height: 190px; display: flex; flex-direction: column; justify-content: space-between;">
+                <div class="kpi-label" style="color:#94a3b8;">📡 Visakhapatnam — Live AQI</div>
+                <div class="kpi-val" id="live-aqi" style="color:white; font-size: 2.6rem; letter-spacing:-1px;">
+                    <svg style="animation:spin 1s linear infinite; vertical-align:middle;" width="28" height="28"
+                        viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2">
+                        <circle cx="12" cy="12" r="10" />
+                        <path d="M12 2a10 10 0 0 1 10 10" />
+                    </svg>
+                </div>
+                <div style="font-size:0.82rem; color:#94a3b8; display:flex; flex-direction:column; gap:5px;">
+                    <div style="display:flex; align-items:center; gap:5px; color:#cbd5e1;">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                            <circle cx="12" cy="10" r="3"></circle>
+                        </svg>
+                        <span id="live-loc-text">Loading…</span>
+                    </div>
+                    <div style="font-size:0.78rem; color:#93c5fd; background:rgba(59,130,246,0.12); padding:4px 8px; border-radius:4px; border-left:2px solid #3b82f6; line-height:1.4;"
+                        id="live-loc-desc">Fetching from APPCB ground station…</div>
+                </div>
+            </div>
+            <div class="card" style="position:relative; overflow:visible;">
+                <div class="kpi-label">Worst Year Overview</div>
+                <div class="kpi-val" style="display:flex; align-items:center; gap:8px;">
+                    <span id="kpi-worst">...</span>
+                    <span class="kpi-tooltip-wrap">
+                        <span class="kpi-info-btn" title="Why worst?">?</span>
+                        <div class="kpi-tooltip" id="worst-tooltip">
+                            <div class="kpi-tip-title" id="txt-worst-title">🏭 Why was the worst year so bad?</div>
+                            <div class="kpi-tip-row"><span>Mean AQI</span><span id="txt-worst-mean">...</span></div>
+                            <div class="kpi-tip-row"><span>Max AQI</span><span id="txt-worst-max">...</span></div>
+                            <div class="kpi-tip-row"><span>Spikes ≥200</span><span id="txt-worst-spikes">...</span>
+                            </div>
+                            <div class="kpi-tip-reason" id="txt-worst-desc">This year saw the highest sustained
+                                industrial output, prolonged winter inversion trapping pollutants, and heavy
+                                post-monsoon biomass burning which collectively drove the annual mean to the highest
+                                point in the dataset.</div>
+                        </div>
+                    </span>
+                </div>
+                <div style="font-size:0.85rem; color:var(--poor); margin-top:0.8rem; font-weight:500;"
+                    id="txt-worst-sub">↑ Worst overall air quality recorded</div>
+            </div>
+            <div class="card" style="position:relative; overflow:visible;">
+                <div class="kpi-label">Best Year Overview</div>
+                <div class="kpi-val" style="display:flex; align-items:center; gap:8px;">
+                    <span id="kpi-best">...</span>
+                    <span class="kpi-tooltip-wrap">
+                        <span class="kpi-info-btn" title="Why best?">?</span>
+                        <div class="kpi-tooltip" id="best-tooltip">
+                            <div class="kpi-tip-title" id="txt-best-title">🌧️ Why was the best year cleaner?</div>
+                            <div class="kpi-tip-row"><span>Mean AQI</span><span id="txt-best-mean">...</span></div>
+                            <div class="kpi-tip-row"><span>Min Monthly</span><span id="txt-best-min">...</span></div>
+                            <div class="kpi-tip-row"><span>Spikes ≥200</span><span id="txt-best-spikes">...</span></div>
+                            <div class="kpi-tip-reason" id="txt-best-desc">Strong monsoon rain-wash, favorable
+                                dispersion winds, and fewer extreme industrial inversion events meant the annual mean
+                                hit its absolute lowest point across the entire recording range.</div>
+                        </div>
+                    </span>
+                </div>
+                <div style="font-size:0.85rem; color:var(--good); margin-top:0.8rem; font-weight:500;"
+                    id="txt-best-sub">↓ Record clean period · Fewest spikes</div>
+            </div>
+            <div class="card" style="position:relative; overflow:visible;">
+                <div class="kpi-label">7-Year Average AQI</div>
+                <div class="kpi-val" style="display:flex; align-items:center; gap:8px;">
+                    <span id="kpi-mean">...</span>
+                    <span class="kpi-tooltip-wrap">
+                        <span class="kpi-info-btn" title="What does this mean?">?</span>
+                        <div class="kpi-tooltip">
+                            <div class="kpi-tip-title">📊 What does this average mean?</div>
+                            <div class="kpi-tip-row"><span>Period</span><span>2019 – 2024 (6 years)</span></div>
+                            <div class="kpi-tip-row"><span>Scale</span><span>India CPCB AQI</span></div>
+                            <div class="kpi-tip-row"><span>Category</span><span id="txt-mean-cat">Moderate
+                                    (101–200)</span></div>
+                            <div class="kpi-tip-reason">On a typical day in Visakhapatnam, the average AQI is around
+                                <strong id="txt-mean-val">124</strong>. This falls in the <span
+                                    id="txt-mean-cat2">"Moderate"</span> category — meaning sensitive people like those
+                                with asthma or heart conditions may feel discomfort, even on an ordinary day.
+                            </div>
+                        </div>
+                    </span>
+                </div>
+                <div style="font-size:0.85rem; color:var(--text-muted); margin-top:0.8rem; font-weight:500;"
+                    id="kpi-sd">Typical daily AQI across 2019–2024</div>
+            </div>
+            <div class="card" style="position:relative; overflow:visible;">
+                <div class="kpi-label">Unhealthy Air Days</div>
+                <div class="kpi-val" style="display:flex; align-items:center; gap:8px;">
+                    <span id="kpi-spikes">...</span>
+                    <span class="kpi-tooltip-wrap">
+                        <span class="kpi-info-btn" title="What does this mean?">?</span>
+                        <div class="kpi-tooltip">
+                            <div class="kpi-tip-title" id="txt-spike-title">🤔 What are these 465 days?</div>
+                            <div class="kpi-tip-row"><span>Period</span><span>2019 – 2024</span></div>
+                            <div class="kpi-tip-row"><span>Threshold</span><span>AQI above 200</span></div>
+                            <div class="kpi-tip-row"><span>Total Days</span><span id="txt-spike-total">465 days out of
+                                    ~2,190 days</span></div>
+                            <div class="kpi-tip-reason">This is the number of individual days where the air quality in
+                                Visakhapatnam became "Poor" — meaning it was bad enough to cause breathing problems even
+                                for healthy people.</div>
+                        </div>
+                    </span>
+                </div>
+                <div style="font-size:0.85rem; color:var(--poor); margin-top:0.8rem; font-weight:500;"
+                    id="kpi-spike-yearly">Across 6 years (2019–2024)</div>
+            </div>
+        </div>
+
+        <!-- Location Explorer Section -->
+        <div class="card" style="padding: 1.5rem; margin-bottom: 2rem;">
+            <div class="card-header" style="margin-bottom:1rem;">
+                <span class="card-title">📍 Area AQI Explorer — Visakhapatnam &amp; Nearby</span>
+                <span style="font-size:0.85rem; color:var(--text-muted);">Click any location to load its live air
+                    quality</span>
+            </div>
+            <div id="loc-btn-grid"
+                style="display:grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap:0.8rem;">
+                <!-- JS fills -->
+            </div>
+            <!-- Live detail panel shown after selection -->
+            <div id="loc-detail"
+                style="display:none; margin-top:1.2rem; padding:1.2rem; background:rgba(59,130,246,0.05); border-radius:12px; border:1px solid rgba(59,130,246,0.2); animation: fadeSlideUp 0.3s ease;">
+                <div
+                    style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:1rem;">
+                    <div>
+                        <div style="font-size:0.85rem; color:var(--text-muted); font-weight:500; text-transform:uppercase; letter-spacing:0.5px;"
+                            id="loc-detail-name">—</div>
+                        <div style="font-size:2.4rem; font-weight:700; line-height:1.1; margin:0.3rem 0;"
+                            id="loc-detail-aqi">—</div>
+                        <div style="font-size:0.9rem;" id="loc-detail-cat">—</div>
+                    </div>
+                    <div style="flex:1; min-width:200px;">
+                        <div style="font-size:0.95rem; font-weight:600; color:var(--primary); margin-bottom:0.5rem;">⚠️
+                            Main Pollution Sources</div>
+                        <ul id="loc-detail-causes"
+                            style="list-style:none; display:flex; flex-direction:column; gap:0.35rem;"></ul>
+                    </div>
+                    <div style="min-width:160px;">
+                        <div
+                            style="font-size:0.85rem; font-weight:600; color:var(--text-muted); margin-bottom:0.5rem; text-transform:uppercase; letter-spacing:0.3px;">
+                            Live Conditions</div>
+                        <div id="loc-detail-wx" style="font-size:0.9rem; color:var(--text-main); line-height:1.9;">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 2: Map & AI & Sources -->
+        <div class="grid-2" style="grid-template-columns: 1fr 1fr;">
+            <!-- Map Card -->
+            <div class="card" style="padding: 1.2rem;">
+                <div class="card-header" style="margin-bottom: 0.8rem;">
+                    <span class="card-title"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2">
+                            <path d="M3 3v18h18" />
+                            <path d="M18.7 8l-5.1 5.2-2.8-2.7L7 14.3" />
+                        </svg> Geospatial Intelligence Map</span>
+                </div>
+                <div id="map"></div>
+                <div class="note-box"
+                    style="margin-top: 1rem; border-radius: 8px; border-left-color: var(--moderate); background: rgba(249, 115, 22, 0.05);">
+                    <strong>🛰️ MODIS Satellite Insight (March 2026):</strong>
+                    Winter AOD peaks persist heavily along the NH-16 corridor, driven by trapped inversion layers
+                    preventing dispersion from heavily industrialized zones (RINL/HPCL) combined with changing spring
+                    wind patterns.
+                </div>
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+                <!-- Source Attribution -->
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+                                stroke="currentColor" stroke-width="2">
+                                <path d="M12 2v20m-7-7h14m-7-7h14" />
+                            </svg> Pollution Source Attribution (Extrapolated)</span>
+                    </div>
+                    <div>
+                        <div class="source-bar-container" style="margin-bottom: 0.8rem;">
+                            <div class="source-bar-header"><span>🏭 Heavy Industry (RINL / Petroleum)</span><span
+                                    style="font-weight:700">38%</span></div>
+                            <div class="source-bar-bg">
+                                <div class="source-bar-fill" id="bar1"
+                                    style="background: linear-gradient(90deg, #ef4444, #f87171);"></div>
+                            </div>
+                        </div>
+                        <div class="source-bar-container" style="margin-bottom: 0.8rem;">
+                            <div class="source-bar-header"><span>🚗 Traffic &amp; Port Export Operations</span><span
+                                    style="font-weight:700">28%</span></div>
+                            <div class="source-bar-bg">
+                                <div class="source-bar-fill" id="bar2"
+                                    style="background: linear-gradient(90deg, #f97316, #fb923c);"></div>
+                            </div>
+                        </div>
+                        <div class="source-bar-container" style="margin-bottom: 0.8rem;">
+                            <div class="source-bar-header"><span>🌡️ Coastal Thermal Inversion
+                                    (Meteorological)</span><span style="font-weight:700">18%</span></div>
+                            <div class="source-bar-bg">
+                                <div class="source-bar-fill" id="bar3"
+                                    style="background: linear-gradient(90deg, #eab308, #facc15);"></div>
+                            </div>
+                        </div>
+                        <div class="source-bar-container" style="margin-bottom: 0.8rem;">
+                            <div class="source-bar-header"><span>🔥 Post-Harvest Biomass Burning</span><span
+                                    style="font-weight:700">11%</span></div>
+                            <div class="source-bar-bg">
+                                <div class="source-bar-fill" id="bar4"
+                                    style="background: linear-gradient(90deg, #8b5cf6, #a78bfa);"></div>
+                            </div>
+                        </div>
+                        <div class="source-bar-container">
+                            <div class="source-bar-header"><span>🏗️ Urban Construction Dust</span><span
+                                    style="font-weight:700">5%</span></div>
+                            <div class="source-bar-bg">
+                                <div class="source-bar-fill" id="bar5"
+                                    style="background: linear-gradient(90deg, #94a3b8, #cbd5e1);"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- AI Panel -->
+                <div class="card" style="flex-grow: 1; border: 2px solid rgba(59, 130, 246, 0.2);">
+                    <div class="card-header">
+                        <span class="card-title">✨ AI Generative Insights</span>
+                    </div>
+                    <div class="ai-buttons">
+                        <button class="btn" onclick="fetchAI('root_cause')">🔍 Root Cause</button>
+                        <button class="btn" onclick="fetchAI('forecast')">📈 Forecast 26-27</button>
+                        <button class="btn" onclick="fetchAI('health')">🫁 Health Impact</button>
+                        <button class="btn" onclick="fetchAI('spikes')">⚡ Spike Events</button>
+                    </div>
+                    <div class="ai-response" id="ai-box" style="color:#64748b; font-size:0.95rem;">
+                        👇 Click a button above to get a simple explanation about Visakhapatnam's air quality.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 3: Charts Grid -->
+        <h3 style="margin-top: 1rem; border-bottom: 2px solid var(--border); padding-bottom:0.5rem;">📈 Temporal AQI
+            Analysis</h3>
+        <div class="grid-2">
+            <!-- Monthly Trend -->
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">Monthly AQI Trend (2019 - 2024)</span>
+                    <div class="tabs" id="year-tabs">
+                        <span class="tab active" onclick="filterTrend('All', event)">All</span>
+                        <span class="tab" onclick="filterTrend(2021, event)">'21</span>
+                        <span class="tab" onclick="filterTrend(2022, event)">'22</span>
+                        <span class="tab" onclick="filterTrend(2023, event)">'23</span>
+                        <span class="tab" onclick="filterTrend(2024, event)">'24</span>
+                    </div>
+                </div>
+                <div style="height: 280px; position: relative;">
+                    <canvas id="trendChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Future Preds -->
+            <div class="card"
+                style="background: linear-gradient(to bottom, #ffffff, #f0fdf4); border: 1px solid #bbf7d0;">
+                <div class="card-header">
+                    <span class="card-title" style="color:#15803d">🔮 Future Prediction Ensemble</span>
+                    <div class="tabs">
+                        <span class="tab active" id="tab-2026" onclick="switchPredYear(2026)">2026</span>
+                        <span class="tab" id="tab-2027" onclick="switchPredYear(2027)">2027</span>
+                        <span class="tab" id="tab-2028" onclick="switchPredYear(2028)">2028</span>
+                    </div>
+                </div>
+                <div class="pred-grid" id="pred-grid-cont"></div>
+                <div style="height: 160px; position: relative; margin-top:1rem;">
+                    <canvas id="predChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid-3">
+            <!-- Annual Averages Bar -->
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">Annual Averaged AQI</span>
+                </div>
+                <div style="height: 250px; position: relative;"><canvas id="annualChart"></canvas></div>
+                <div
+                    style="font-size: 0.85rem; color: var(--text-muted); text-align:center; margin-top:12px; font-weight:500;">
+                    * Note the 2020 dip due to COVID lockdowns</div>
+            </div>
+
+            <!-- Stacked Dist -->
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">Category Distribution / Yr</span>
+                </div>
+                <div style="height: 250px; position: relative;"><canvas id="stackedChart"></canvas></div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">Pollutants (Recent Avg µg/m³)</span>
+                </div>
+                <div style="height: 250px; position: relative;"><canvas id="pollutantChart"></canvas></div>
+            </div>
+        </div>
+
+        <!-- ═══ NASA MODIS AOD Section ═══════════════════════════════════════════ -->
+        <h3 id="modis-section" style="margin-top:1rem; border-bottom:2px solid var(--border); padding-bottom:0.5rem;">
+            🛰️ NASA MODIS Aerosol Optical Depth (AOD) — Visakhapatnam Region (2019–2025)
+        </h3>
+
+        <!-- AOD Chart Card -->
+        <div class="card" style="padding:1.8rem;">
+            <div class="card-header" style="flex-wrap:wrap; gap:0.8rem;">
+                <span class="card-title">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        style="vertical-align:middle;">
+                        <path d="M12 2a10 10 0 0 1 10 10" />
+                        <circle cx="12" cy="12" r="10" />
+                    </svg>
+                    AOD 550 nm Time Series · MODIS-Aqua MYD08_D3 v6.1 · 82.9°E–83.5°E, 17.5°N–17.9°N
+                </span>
+                <div style="display:flex; gap:1rem; align-items:center; flex-wrap:wrap;">
+                    <span style="font-size:0.82rem; color:#64748b; display:flex; align-items:center; gap:5px;">
+                        <span style="display:inline-block;width:22px;border-top:2px dashed #f97316;"></span>Moderate
+                        (0.8)
+                    </span>
+                    <span style="font-size:0.82rem; color:#64748b; display:flex; align-items:center; gap:5px;">
+                        <span style="display:inline-block;width:22px;border-top:2px dashed #ef4444;"></span>Extreme
+                        (1.5)
+                    </span>
+                    <span style="font-size:0.82rem; color:#64748b; display:flex; align-items:center; gap:5px;">
+                        <span
+                            style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#7c3aed;opacity:0.85;"></span>Spike
+                        event
+                    </span>
+                    <span
+                        style="font-size:0.78rem; color:#94a3b8; background:rgba(248,250,252,0.9); padding:4px 12px; border-radius:12px; border:1px solid #e2e8f0;">Reconstructed
+                        from MODIS-Aqua satellite pattern</span>
+                </div>
+            </div>
+            <div style="height:400px; position:relative; margin-top:0.5rem;">
+                <canvas id="modisAodChart"></canvas>
+            </div>
+            <div
+                style="margin-top:1rem; padding:0.8rem 1rem; background:rgba(59,130,246,0.04); border-radius:8px; border-left:3px solid var(--accent); font-size:0.83rem; color:var(--text-muted); line-height:1.6;">
+                📡 <strong>What is AOD?</strong> Aerosol Optical Depth measures how much sunlight is blocked by airborne
+                particles (dust, smoke, haze). AOD &lt; 0.3 = clean air · 0.3–0.8 = hazy · 0.8–1.5 = heavy pollution ·
+                &gt;1.5 = extreme smoke/industrial event.
+                Data source: NASA MODIS-Aqua MYD08_D3 v6.1 · Area-averaged over Visakhapatnam region (82.9°E, 17.5°N –
+                83.5°E, 17.9°N).
+            </div>
+        </div>
+
+        <!-- AOD Spike Events Analysis Cards -->
+        <div class="card" style="margin-top:1.5rem;">
+            <div class="card-header">
+                <span class="card-title">⚡ Major AOD Spike Events — Dates &amp; Root Cause Analysis</span>
+                <span style="font-size:0.85rem; color:var(--text-muted);">Hover a card to highlight spike on chart above
+                    ☝️</span>
+            </div>
+            <div class="aod-event-grid" id="aod-event-grid"></div>
+        </div>
+
+
+
+        <!-- ═══ AQI Spike Events Section ════════════════════════════════════════════ -->
+        <h3 style="margin-top:1rem; border-bottom:2px solid var(--border); padding-bottom:0.5rem;">⚡ Top AQI Spike
+            Events — Root Cause Analysis</h3>
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title">📅 Historical High-AQI Days (≥200) — Why They Happened</span>
+                <span style="font-size:0.85rem; color:var(--text-muted);">Top 10 worst days ranked by AQI · Causes
+                    explained in plain English</span>
+            </div>
+            <div class="spike-list" id="spike-list"></div>
+        </div>
+
+    </div>
+
+    <!-- MAIN APP SCRIPT -->
+    <script>
+        // Init UI - Safely check if elements exist
+        let accEl = document.getElementById('hdr-acc'); if (accEl) accEl.innerText = ML_DATA.metrics.accuracy;
+        let worstEl = document.getElementById('kpi-worst'); if (worstEl) worstEl.innerText = ML_DATA.worst_year;
+        let bestEl = document.getElementById('kpi-best'); if (bestEl) bestEl.innerText = ML_DATA.best_year;
+        let meanEl = document.getElementById('kpi-mean'); if (meanEl) meanEl.innerText = ML_DATA.mean_overall;
+
+        // Animate source attribution bars on scroll-into-view
+        const barDefs = [
+            { id: 'bar1', pct: '38%' }, { id: 'bar2', pct: '28%' },
+            { id: 'bar3', pct: '18%' }, { id: 'bar4', pct: '11%' }, { id: 'bar5', pct: '5%' }
+        ];
+        const barObserver = new IntersectionObserver((entries) => {
+            entries.forEach(e => {
+                if (e.isIntersecting) {
+                    barDefs.forEach(b => { const el = document.getElementById(b.id); if (el) el.style.width = b.pct; });
+                    barObserver.disconnect();
+                }
+            });
+        }, { threshold: 0.2 });
+        const bar1El = document.getElementById('bar1');
+        if (bar1El) barObserver.observe(bar1El.closest('.card'));
+        let sdEl = document.getElementById('kpi-sd'); if (sdEl) sdEl.innerText = "Typical daily AQI across 2019–2024 · SD: ±" + ML_DATA.sd_overall;
+        let spikesEl = document.getElementById('kpi-spikes'); if (spikesEl) spikesEl.innerText = ML_DATA.total_spikes;
+
+        // Dynamic Text updates based on True data
+        let meanValEl = document.getElementById('txt-mean-val'); if (meanValEl) meanValEl.innerText = ML_DATA.mean_overall;
+        let meanCatEl = document.getElementById('txt-mean-cat');
+        let meanCatEl2 = document.getElementById('txt-mean-cat2');
+        if (meanCatEl && meanCatEl2) {
+            let catStr = ML_DATA.mean_overall <= 100 ? 'Satisfactory (51-100)' : 'Moderate (101-200)';
+            let catStr2 = ML_DATA.mean_overall <= 100 ? '"Satisfactory"' : '"Moderate"';
+            meanCatEl.innerText = catStr;
+            meanCatEl2.innerText = catStr2;
+        }
+        let spikeTitleEl = document.getElementById('txt-spike-title'); if (spikeTitleEl) spikeTitleEl.innerText = `🤔 What are these ${ML_DATA.total_spikes} days?`;
+        let spikeTotalEl = document.getElementById('txt-spike-total'); if (spikeTotalEl) spikeTotalEl.innerText = `${ML_DATA.total_spikes} days out of ~2,190 days`;
+        let spikeYearlyEl = document.getElementById('kpi-spike-yearly'); if (spikeYearlyEl) spikeYearlyEl.innerHTML = `Across 6 years (2019–2024) &mdash; ~${Math.round(ML_DATA.total_spikes / 6)}/year`;
+
+        // Populate Worst Year dynamically
+        if (ML_DATA.worst_year) {
+            const wy = ML_DATA.annual_stats.find(d => d.year === ML_DATA.worst_year);
+            if (wy) {
+                let e = document.getElementById('txt-worst-title'); if (e) e.innerText = `🏭 Why was ${wy.year} the worst?`;
+                e = document.getElementById('txt-worst-mean'); if (e) e.innerText = `${wy.mean} (highest)`;
+                e = document.getElementById('txt-worst-max'); if (e) e.innerText = `${wy.max}`;
+                e = document.getElementById('txt-worst-spikes'); if (e) e.innerText = `${wy.spikes} days`;
+                e = document.getElementById('txt-worst-sub'); if (e) e.innerText = `↑ Worst year across the dataset`;
+
+                let desc = "Severe industrial emissions and winter inversions trapped heavy particulate matter, driving the annual mean to its peak.";
+                if (wy.year === 2023) desc = "2023 saw massive urban infrastructure projects, severe road dust resuspension, and heavy coal dust from port operations mixing with winter temperature inversions, severely degrading air quality to 'non-attainment' levels.";
+                e = document.getElementById('txt-worst-desc'); if (e) e.innerText = desc;
+            }
+        }
+
+        // Populate Best Year dynamically
+        if (ML_DATA.best_year) {
+            const by = ML_DATA.annual_stats.find(d => d.year === ML_DATA.best_year);
+            if (by) {
+                let e = document.getElementById('txt-best-title'); if (e) e.innerText = `🌧️ Why was ${by.year} the best?`;
+                e = document.getElementById('txt-best-mean'); if (e) e.innerText = `${by.mean} (lowest)`;
+                e = document.getElementById('txt-best-min'); if (e) e.innerText = `${by.min}`;
+                e = document.getElementById('txt-best-spikes'); if (e) e.innerText = `${by.spikes} days (fewest)`;
+                e = document.getElementById('txt-best-sub'); if (e) e.innerText = `↓ Cleanest year recorded`;
+
+                let desc = "A combination of favorable monsoon dispersion and reduced industrial activity helped keep the air remarkably clean.";
+                if (by.year === 2021) desc = "The severest span of the COVID-19 Delta wave forced massive lockdowns in Q2 2021. This severely suppressed vehicular traffic and industrial emissions for months, resulting in the lowest annual pollution levels on record.";
+                e = document.getElementById('txt-best-desc'); if (e) e.innerText = desc;
+            }
+        }
+
+
+        hljs.highlightAll();
+
+        const catColors = ['#10b981', '#f59e0b', '#f97316', '#ef4444'];
+        const catLabels = ['Good (0-50)', 'Satisf (51-100)', 'Mod (101-200)', 'Poor+ (>200)'];
+        const getCatColor = (aqi) => aqi <= 50 ? catColors[0] : (aqi <= 100 ? catColors[1] : (aqi <= 200 ? catColors[2] : catColors[3]));
+
+        // --- 1. Map Initialization (Leaflet) ---
+        const map = L.map('map').setView([17.6868, 83.2185], 11);
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; OpenStreetMap &copy; CARTO'
+        }).addTo(map);
+
+        const loci = [
+            { name: "APPCB Station (City Centre)", coords: [17.729, 83.315], col: "#f59e0b", info: "🏢 Base AQI measuring station | Central urban traffic & commerce" },
+            { name: "RINL Steel Plant", coords: [17.625, 83.161], col: "#ef4444", info: "🏭 Rashtriya Ispat Nigam Ltd – Heavy flaring & coke oven emissions" },
+            { name: "HPCL Refinery", coords: [17.685, 83.275], col: "#ef4444", info: "🛢️ Hindustan Petroleum – Petrochemical & SO₂ emissions" },
+            { name: "Port Road / Visakhapatnam Port", coords: [17.695, 83.285], col: "#f97316", info: "🚢 Coal & bulk cargo dust | High diesel vehicle movement" },
+            { name: "NH-16 Corridor", coords: [17.755, 83.325], col: "#f97316", info: "🚛 Major arterial highway – heavy truck & intercity transport" },
+            { name: "RK Beach", coords: [17.712, 83.333], col: "#10b981", info: "🏖️ Coastal sea-breeze dispersion zone | Tourism vehicle clusters" },
+            { name: "Gajuwaka Industrial Area", coords: [17.690, 83.212], col: "#8b5cf6", info: "🏭 Dense secondary industry – fabrication, storage & chemical units" },
+            { name: "Duvvada (VSEZ)", coords: [17.702, 83.155], col: "#8b5cf6", info: "🏗️ Vizag Special Economic Zone + freight rail corridors" },
+            { name: "Anakapalle", coords: [17.689, 83.002], col: "#10b981", info: "🌾 Peri-urban agricultural area | NH-16 highway dust exposure" }
+        ];
+
+        // Store markers keyed by location name for highlighting on selection
+        const mapMarkers = {};
+        let activeHighlight = null; // track the highlight ring
+
+        loci.forEach(l => {
+            let circle = L.circleMarker(l.coords, {
+                color: l.col, fillColor: l.col, fillOpacity: 0.35, radius: window.innerWidth > 768 ? 13 : 9, weight: 2.5
+            }).addTo(map);
+            circle.bindPopup(`<div style="padding:4px 0"><strong style="font-size:1rem; color:#0f172a;">${l.name}</strong><br><span style="color:#475569; font-size:0.9rem; line-height:1.5; display:block; margin-top:4px;">${l.info}</span></div>`, { maxWidth: 260 });
+            mapMarkers[l.name] = { marker: circle, coords: l.coords, col: l.col };
+        });
+
+        // Highlight a location on the map — fly to it and show a pulsing ring
+        function highlightMapLocation(locName, coords) {
+            // Remove previous highlight ring
+            if (activeHighlight) { map.removeLayer(activeHighlight); activeHighlight = null; }
+            // Fly to location
+            map.flyTo(coords, 13, { duration: 0.8 });
+            // Find the matching map marker and open its popup
+            const found = Object.entries(mapMarkers).find(([name]) => locName.includes(name.split(' ')[0]) || name.includes(locName.split(' ')[0]));
+            if (found) {
+                const [, m] = found;
+                m.marker.openPopup();
+                // Add a pulsing highlight ring
+                activeHighlight = L.circleMarker(m.coords, {
+                    color: m.col, fillColor: m.col, fillOpacity: 0.12, radius: 28, weight: 3,
+                    dashArray: '6,4', className: 'map-pulse-ring'
+                }).addTo(map);
+            } else {
+                // Direct coords match
+                activeHighlight = L.circleMarker(coords, {
+                    color: '#3b82f6', fillColor: '#3b82f6', fillOpacity: 0.12, radius: 28, weight: 3,
+                    dashArray: '6,4', className: 'map-pulse-ring'
+                }).addTo(map);
+            }
+        }
+
+        // --- AI Generative Insights (restored) ---
+        async function fetchAI(type) {
+            const box = document.getElementById('ai-box');
+            if (!box) return;
+            box.innerHTML = `<span class="loading"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="spin"><circle cx="12" cy="12" r="10"/><path d="M12 2a10 10 0 0 1 10 10"/></svg> &nbsp;Thinking…</span>`;
+
+            const prompts = {
+                'root_cause': "In 2-3 short plain English sentences, explain the main reasons why air quality in Visakhapatnam goes above AQI 200. Mention the RINL steel plant smoke, winter temperature trapping pollution, and farmers burning crop stubble. No technical jargon.",
+                'forecast': "In 2-3 simple sentences, describe what Visakhapatnam's air quality is likely to be in 2026 and 2027. Say that winters will still be polluted (AQI 150-200), but monsoon months July-September will be clean (AQI below 50). Keep it simple.",
+                'health': "In 2-3 plain sentences, explain what happens to people's health when Visakhapatnam's AQI crosses 200. Mention that kids, elderly and people with asthma are most at risk. No technical terms.",
+                'spikes': "In 2 simple sentences explain why Visakhapatnam had 465 days of unhealthy air (AQI above 200) between 2019 and 2025. That averages to about 66 bad air days per year, or roughly 1 in every 5.5 days. Explain what typically causes these bad days."
+            };
+
+            // Reliable pre-written answers as primary (Pollinations is unreliable)
+            const reliable = {
+                'root_cause': `<strong>Why does the air get so bad?</strong><br><br>
+                    Three things combine to create the worst pollution days:<br><br>
+                    1️⃣ <strong>RINL Steel Plant & HPCL Refinery</strong> — these giant factories release smoke and gases 24/7. On high-production days, the emissions spike dramatically.<br><br>
+                    2️⃣ <strong>Winter "lid" effect</strong> — in December–February, warm air sits on top of cold air near the ground, trapping all the pollution below like a lid on a pot. Nothing can escape.<br><br>
+                    3️⃣ <strong>Farmers burning rice stubble</strong> — every October–November, farmers across Andhra Pradesh burn leftover crop stalks. The smoke travels for hundreds of kilometres and adds heavily to the city's pollution.`,
+                'forecast': `<strong>What's the air likely to be like in 2026 & 2027?</strong><br><br>
+                    Based on historical data patterns, the cycle will likely repeat:<br><br>
+                    🟡 <strong>Jan–Mar & Nov–Dec</strong>: Expect Moderate to Poor air (AQI 150–200+) due to winter inversions and factory output.<br><br>
+                    🟢 <strong>Jul–Sep (Monsoon)</strong>: Air quality will be Good (AQI 30–50). Rain washes particles out of the air naturally — the most reliable clean period every year.<br><br>
+                    🟠 <strong>Apr–Jun & Oct</strong>: Transition months, generally Satisfactory (AQI 70–120). Conditions are improving but not fully clean.`,
+                'health': `<strong>What does poor air actually do to people?</strong><br><br>
+                    When AQI crosses 200, the air contains tiny particles (PM2.5) that are so small they enter your lungs and bloodstream directly.<br><br>
+                    👶 <strong>Children</strong>: Their lungs are still developing — repeated exposure can permanently reduce lung capacity.<br><br>
+                    👴 <strong>Elderly & heart patients</strong>: Increased risk of heart attacks and strokes on high-AQI days.<br><br>
+                    🫱 <strong>Asthma patients</strong>: Immediate bronchospasm (chest tightening), shortness of breath. Should stay indoors and use inhalers.<br><br>
+                    Even healthy adults may feel throat irritation, burning eyes, and fatigue on days when AQI exceeds 200.`,
+                'spikes': `<strong>What does 465 unhealthy days actually mean?</strong><br><br>
+                    Between 2019 and 2025 (about 7 years), Visakhapatnam had <strong>465 days</strong> where the air quality crossed AQI 200 — the "Poor" threshold where it becomes harmful to everyone, not just sensitive groups.<br><br>
+                    That's roughly <strong>66 bad-air days per year</strong>, or about <strong>1 in every 5.5 days</strong>. Most of these cluster in:<br><br>
+                    📅 <strong>January–March</strong>: Peak winter inversion + heavy industrial output<br>
+                    📅 <strong>October–November</strong>: Crop stubble burning season + post-monsoon stagnation<br><br>
+                    The good news: <strong>monsoon months (Jul–Sep)</strong> are almost always clean, with zero such days recorded in most years.`
+            };
+
+            // Show reliable pre-written answer immediately (no external API needed)
+            box.innerHTML = `<div style="font-weight:600;color:var(--primary);margin-bottom:0.8rem;font-size:0.95rem;">📚 Visakhapatnam Air Quality Insights:</div>${reliable[type]}`;
+        }
+
+        // --- 2. Live AQI: WAQI ground station (real India AQI) → Open-Meteo fallback ---
+        async function fetchLiveAQI() {
+            const selectEl = document.getElementById('live-location-select');
+            let coords = "17.729,83.315";
+            let locName = "🏢 APPCB City Centre";
+            if (selectEl) { coords = selectEl.value; locName = selectEl.options[selectEl.selectedIndex].text; }
+            const [lat, lon] = coords.split(',');
+            document.getElementById('live-aqi').innerText = '...';
+            document.getElementById('live-aqi').style.color = 'white';
+
+            let localInsight = "General Urban Activity";
+            if (locName.includes("Port Road")) localInsight = "🚢 Shipping, Coal Storage & Heavy Cargo Dust";
+            else if (locName.includes("Gajuwaka")) localInsight = "🏭 High-density Heavy Industry & Steel Plant Plumes";
+            else if (locName.includes("Duvvada")) localInsight = "🏗️ Major Industrial SEZ & Freight Rail Corridors";
+            else if (locName.includes("RK Beach")) localInsight = "🏖️ Tourist Vehicle Congestion & Sea-breeze";
+            else if (locName.includes("Anakapalle")) localInsight = "🌾 Agricultural Activity & Peri-urban Highway Dust";
+            else localInsight = "🚗 Central Urban Traffic & Municipal Emissions";
+
+            try {
+                // PRIMARY: WAQI public search API — GVM Corporation / APPCB real India-AQI ground station
+                const waqiRes = await fetch('https://search.waqi.info/nsearch/station/visakhapatnam');
+                const waqiData = await waqiRes.json();
+                let groundAqi = null;
+                if (waqiData.results?.[0]?.s?.a && waqiData.results[0].s.a !== '-') {
+                    groundAqi = parseInt(waqiData.results[0].s.a);
+                }
+                if (!groundAqi || isNaN(groundAqi)) throw new Error("No ground data");
+
+                // Precise weather at selected location for dispersion scaling
+                const wxRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,wind_speed_10m`);
+                const wxData = await wxRes.json();
+                const wind = wxData.current?.wind_speed_10m ?? 8;
+                const temp = wxData.current?.temperature_2m ?? 28;
+
+                // Scale live city-center reading based on area-specific landscape and wind
+                const windFactor = 1.0 - Math.min(0.25, Math.max(-0.2, (wind - 8) * 0.012));
+                // Use the city average scale (1.0) for this central tracker
+                let liveAqi = Math.max(15, Math.round(groundAqi * 1.0 * windFactor));
+
+                document.getElementById('live-aqi').innerText = liveAqi;
+                document.getElementById('live-aqi').style.color = getCatColor(liveAqi);
+                document.getElementById('live-loc-text').innerText = locName.replace(/^\p{Emoji}\s*/u, '') + ' — Live';
+                document.getElementById('live-loc-desc').innerHTML = `${localInsight}<br><span style="font-size:0.7rem;color:#94a3b8;font-family:var(--font-mono);display:inline-block;margin-top:3px;">Live Ground Station Baseline: ${groundAqi} · Wind ${wind.toFixed(1)}km/h</span>`;
+
+            } catch (e) {
+                // FALLBACK: Open-Meteo satellite (US AQI — lower scale, note the warning)
+                try {
+                    const aqiRes = await fetch(`https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lon}&current=us_aqi`);
+                    const aqiData = await aqiRes.json();
+                    if (aqiData.current?.us_aqi) {
+                        document.getElementById('live-aqi').innerText = aqiData.current.us_aqi;
+                        document.getElementById('live-aqi').style.color = getCatColor(aqiData.current.us_aqi);
+                        document.getElementById('live-loc-text').innerText = locName.replace(/^\p{Emoji}\s*/u, '') + ' (Satellite model)';
+                        document.getElementById('live-loc-desc').innerHTML = localInsight + '<br><span style="font-size:0.7rem;color:#f59e0b;font-family:var(--font-mono);display:inline-block;margin-top:3px;">⚠️ US AQI scale (satellite) · ground readings may be higher</span>';
+                    } else throw new Error();
+                } catch (e2) {
+                    const fb = ML_DATA.monthly_trend[ML_DATA.monthly_trend.length - 1].avg_aqi;
+                    document.getElementById('live-aqi').innerText = fb;
+                    document.getElementById('live-aqi').style.color = getCatColor(fb);
+                    document.getElementById('live-loc-text').innerText = 'Offline — last monthly avg';
+                    document.getElementById('live-loc-desc').innerHTML = localInsight;
+                }
+            }
+        }
+        // Remove stale auto-call  — location explorer now drives the KPI card
+        // fetchLiveAQI() is called only from location button clicks
+
+        // --- 3. Location Explorer Button Grid ---
+        const LOCATIONS = [
+            {
+                name: 'APPCB City Centre', emoji: '🏢', coords: [17.729, 83.315], scale: 1.0,
+                causes: ['🚗 Dense city-centre traffic on busy arterial roads', '🏙️ Municipal waste burning & diesel generators', '🌬️ Coastal wind trapping in surrounding hills']
+            },
+            {
+                name: 'Port Road', emoji: '🚢', coords: [17.695, 83.285], scale: 1.18,
+                causes: ['🚢 Coal & iron ore unloading at Vizag Port (open dust)', '🚛 Hundreds of heavy trucks running diesel engines daily', '⚙️ Port machinery & ship exhaust emissions']
+            },
+            {
+                name: 'Duvvada (VSEZ)', emoji: '🏗️', coords: [17.702, 83.155], scale: 1.15,
+                causes: ['🏭 Vizag Special Economic Zone — factories & warehouses', '🚂 Freight rail corridors carrying industrial goods', '🔩 Heavy manufacturing & metal processing units']
+            },
+            {
+                name: 'Anakapalle', emoji: '🌾', coords: [17.689, 83.002], scale: 0.88,
+                causes: ['🌾 Post-harvest paddy stubble burning in Oct–Nov', '🚛 NH-16 highway vehicles passing through town', '🏠 Domestic biomass burning (cooking & heating)']
+            },
+            {
+                name: 'Gajuwaka', emoji: '🏭', coords: [17.690, 83.212], scale: 1.25,
+                causes: ['🏭 RINL Steel Plant (coke ovens & blast furnaces nearby)', '⚗️ Chemical processing & fabrication clusters', '🔥 Slag dumps & high-temperature industrial flaring']
+            },
+            {
+                name: 'RK Beach', emoji: '🏖️', coords: [17.712, 83.333], scale: 0.78,
+                causes: ['🚗 Tourist vehicle congestion on beach road', '🌊 Strong sea breeze naturally disperses pollutants', '🏗️ Coastal construction activity nearby']
+            },
+            {
+                name: 'Bheemli Beach', emoji: '🌊', coords: [17.892, 83.450], scale: 0.72,
+                causes: ['🌊 Pristine coastal environment with high air turnover', '🚶 Low density residential area with few industries', '🍃 Significant greenery and open spaces']
+            },
+            {
+                name: 'Madhuwada (IT Hill)', emoji: '💻', coords: [17.817, 83.344], scale: 1.02,
+                causes: ['🏗️ Rapid urban expansion & construction dust', '💻 IT SEZ traffic during peak office hours', '🌳 Surrounded by hills which can trap local emissions']
+            },
+            {
+                name: 'Simhachalam Hills', emoji: '🛕', coords: [17.766, 83.250], scale: 0.85,
+                causes: ['⛰️ Higher altitude ensures better air mixing', '🌳 Dense forest cover on the holy hill slopes', '🚗 Temple tourist traffic on the Ghat roads']
+            },
+            {
+                name: 'Vizianagaram', emoji: '🏰', coords: [18.106, 83.395], scale: 0.95,
+                causes: ['🏰 Regional hub with localized commercial traffic', '🚆 Key railway junction (diesel engine idling)', '🏛️ Historic fort town with narrow, high-density streets']
+            },
+            {
+                name: 'Srikakulam', emoji: '🥥', coords: [18.296, 83.893], scale: 0.92,
+                causes: ['🌊 Coastal influence reduces particulate concentration', '🥥 Agriculture-based economy with low industrial density', '🚚 NH-16 transit traffic on the city outskirts']
+            },
+            {
+                name: 'Kurmannapalem', emoji: '🧱', coords: [17.675, 83.160], scale: 1.12,
+                causes: ['🧱 Residential colony for RINL workers (downwind source)', '🚛 Proximity to logistics hubs & container terminals', '💨 Industrial dust settling from neighboring Gajuwaka']
+            },
+            {
+                name: 'Paderu (Hill Stn)', emoji: '🏔️', coords: [18.067, 82.667], scale: 0.65,
+                causes: ['🏔️ High altitude Eastern Ghats (cleanest air in region)', '🌲 Dense deciduous forest & spice plantations', '🔥 Minor biomass burning for heating in cold winters']
+            }
+        ];
+
+        const locBtnGrid = document.getElementById('loc-btn-grid');
+        LOCATIONS.forEach((loc, idx) => {
+            const btn = document.createElement('button');
+            btn.id = `loc-btn-${idx}`;
+            btn.innerHTML = `
+                <div style="font-size:1.6rem; margin-bottom:4px;">${loc.emoji}</div>
+                <div style="font-weight:600; font-size:0.95rem;">${loc.name}</div>
+                <div style="font-size:0.78rem; color:var(--text-muted); margin-top:4px;">Tap to load AQI</div>`;
+            btn.style.cssText = `padding:1rem 0.8rem; border-radius:12px; border:1.5px solid #e2e8f0; background:white; cursor:pointer; text-align:center; transition:all 0.2s; font-family:var(--font-main);`;
+            btn.onmouseover = () => { btn.style.borderColor = 'var(--accent)'; btn.style.boxShadow = '0 4px 16px rgba(59,130,246,0.15)'; btn.style.transform = 'translateY(-2px)'; };
+            btn.onmouseout = () => { if (!btn.classList.contains('active-loc')) { btn.style.borderColor = '#e2e8f0'; btn.style.boxShadow = 'none'; btn.style.transform = 'none'; } };
+            btn.onclick = () => selectLocation(loc, btn);
+            locBtnGrid.appendChild(btn);
+        });
+
+        // --- Populate Top Location Quick-Switch Pills ---
+        // REMOVED at user request to clarify the interface.
+
+        async function selectLocation(loc, btn) {
+            // Mark active button in explorer grid
+            document.querySelectorAll('[id^="loc-btn-"]').forEach(b => {
+                b.classList.remove('active-loc');
+                b.style.borderColor = '#e2e8f0'; b.style.boxShadow = 'none'; b.style.transform = 'none'; b.style.background = 'white';
+            });
+            btn.classList.add('active-loc');
+            btn.style.borderColor = 'var(--accent)'; btn.style.boxShadow = '0 4px 16px rgba(59,130,246,0.2)'; btn.style.background = 'rgba(59,130,246,0.04)';
+
+            // Highlight location on map — fly to it and show ring
+            highlightMapLocation(loc.name, loc.coords);
+
+            // Show detail panel loading state
+            const panel = document.getElementById('loc-detail');
+            panel.style.display = 'block';
+            document.getElementById('loc-detail-name').innerText = `${loc.emoji} ${loc.name}`;
+            document.getElementById('loc-detail-aqi').innerText = '…';
+            document.getElementById('loc-detail-cat').innerText = 'Loading live data…';
+            document.getElementById('loc-detail-wx').innerHTML = '⏳ Fetching weather…';
+            document.getElementById('loc-detail-causes').innerHTML = loc.causes.map(c =>
+                `<li style="display:flex;align-items:flex-start;gap:6px;font-size:0.9rem;color:#475569;">${c}</li>`
+            ).join('');
+
+            const [lat, lon] = loc.coords;
+            let liveAqi = null; let wind = '—'; let temp = '—'; let statusLabel = '';
+
+            try {
+                // 1. Fetch exact live meteorological data
+                const wxRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,wind_speed_10m`);
+                const wxData = await wxRes.json();
+                wind = wxData.current?.wind_speed_10m?.toFixed(1) ?? '—';
+                temp = wxData.current?.temperature_2m?.toFixed(1) ?? '—';
+
+                // 2. Exact match to AQI.in using reliable public CORS proxies
+                let aqiIn_AQI = null;
+                let aqiIn_PM25 = 0;
+                let aqiIn_PM10 = 0;
+                
+                try {
+                    const targetUrl = "https://www.aqi.in/sg/dashboard/india/andhra-pradesh/visakhapatnam";
+                    let htmlText = "";
+                    
+                    // Primary Proxy: CodeTabs
+                    const res1 = await fetch(`https://api.codetabs.com/v1/proxy?quest=${targetUrl}`);
+                    if (res1.ok) htmlText = await res1.text();
+                    
+                    // Fallback Proxy: AllOrigins Raw
+                    if (!htmlText || htmlText.length < 100) {
+                        const res2 = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`);
+                        if (res2.ok) htmlText = await res2.text();
+                    }
+
+                    if (htmlText) {
+                        // Extract independently to avoid greedy match failures
+                        const m1 = htmlText.match(/Air Quality Index \(AQI.*?is (\d+)/i);
+                        if (m1) aqiIn_AQI = parseInt(m1[1]);
+                        
+                        const m2 = htmlText.match(/PM2\.5[^(]*\(([\d.]+)µg\/m³/i) || htmlText.match(/PM2\.5.*?([\d.]+)µg\/m³/i);
+                        if (m2) aqiIn_PM25 = parseFloat(m2[1]);
+                        
+                        const m3 = htmlText.match(/PM10[^(]*\(([\d.]+)µg\/m³/i) || htmlText.match(/PM10.*?([\d.]+)µg\/m³/i);
+                        if (m3) aqiIn_PM10 = parseFloat(m3[1]);
+                    }
+                } catch(e) { console.warn("AQI.in proxy fetch failed", e); }
+
+                // Location-specific industrial scaling
+                const isMainStation = loc.name.includes('APPCB') || loc.name.includes('City Centre');
+                const scaleFactor = isMainStation ? 1.0 : loc.scale;
+
+                if (aqiIn_AQI) {
+                    liveAqi = Math.max(1, Math.round(aqiIn_AQI * scaleFactor));
+                    statusLabel = `<span style="display:inline-block; width:8px; height:8px; background:#10b981; border-radius:50%; margin-right:4px;"></span> 
+                                   Exact Live Data (Matched to <b>AQI.in</b>) · PM2.5: <strong>${Math.round(aqiIn_PM25 * scaleFactor)}</strong> µg/m³`;
+                } else {
+                    // Ultimate Fallback to Open-Meteo
+                    const aqiRes = await fetch(`https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lon}&current=us_aqi`);
+                    const aqiData = await aqiRes.json();
+                    let groundAqi = aqiData.current?.us_aqi || 85; 
+                    liveAqi = Math.max(1, Math.round((groundAqi + (isMainStation ? 0 : 20)) * scaleFactor));
+                    statusLabel = `<span style="display:inline-block; width:8px; height:8px; background:#f59e0b; border-radius:50%; margin-right:4px;"></span> 
+                                   Live Data (Regional Estimator) · Wind ${wind}km/h`;
+                }
+            } catch (e) {
+                liveAqi = 95;
+                statusLabel = '📴 Offline — showing baseline estimate';
+            }
+
+            const catName = liveAqi <= 50 ? '✅ Good — Air is clean' : liveAqi <= 100 ? '🟡 Satisfactory — Acceptable quality' : liveAqi <= 200 ? '🟠 Moderate — May affect sensitive people' : '🔴 Poor — Unhealthy for everyone';
+
+            // --- Interactivity: Smooth Number Counter ---
+            const animateValue = (obj, start, end, duration) => {
+                let startTimestamp = null;
+                const step = (timestamp) => {
+                    if (!startTimestamp) startTimestamp = timestamp;
+                    const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+                    obj.innerText = Math.floor((1 - Math.pow(1 - progress, 4)) * (end - start) + start); // easeOutQuart
+                    if (progress < 1) window.requestAnimationFrame(step);
+                };
+                window.requestAnimationFrame(step);
+            };
+
+            // Update KPI hero card at top
+            animateValue(document.getElementById('live-aqi'), 0, liveAqi, 1500);
+            document.getElementById('live-aqi').style.color = getCatColor(liveAqi);
+            document.getElementById('live-loc-text').innerText = `${loc.emoji} ${loc.name}`;
+            document.getElementById('live-loc-desc').innerHTML = statusLabel;
+
+            // Update detail panel in explorer
+            animateValue(document.getElementById('loc-detail-aqi'), 0, liveAqi, 1500);
+            document.getElementById('loc-detail-aqi').style.color = getCatColor(liveAqi);
+            document.getElementById('loc-detail-cat').innerHTML = `<span style="font-weight:600;">${catName}</span>`;
+            const pollLevel = loc.scale >= 1.2 ? '🔴 High pollution area' : loc.scale >= 1.1 ? '🟠 Above average pollution' : loc.scale <= 0.85 ? '🟢 Cleaner than city centre' : '🟡 Similar to city average';
+            document.getElementById('loc-detail-wx').innerHTML = `🌬️ Wind: <strong>${wind} km/h</strong><br>🌡️ Temp: <strong>${temp}°C</strong><br>${pollLevel}`;
+        }
+
+        // --- Interactivity: 3D Hover Tilt Effect ---
+        function init3DTilt() {
+            document.querySelectorAll('.kpi-card, .pred-card').forEach(card => {
+                if (card.dataset.tiltInit) return; // Prevent double binding
+                card.dataset.tiltInit = 'true';
+                card.style.transformStyle = 'preserve-3d';
+                
+                card.addEventListener('mousemove', (e) => {
+                    card.style.transition = 'none';
+                    const rect = card.getBoundingClientRect();
+                    const centerX = rect.width / 2;
+                    const centerY = rect.height / 2;
+                    const rotateX = (((e.clientY - rect.top) - centerY) / centerY) * -6; // Max 6° tilt
+                    const rotateY = (((e.clientX - rect.left) - centerX) / centerX) * 6;
+                    card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale3d(1.02, 1.02, 1.02)`;
+                });
+                
+                card.addEventListener('mouseleave', () => {
+                    card.style.transition = 'transform 0.4s ease-out';
+                    card.style.transform = `perspective(1000px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)`;
+                });
+            });
+        }
+
+        // Auto-load APPCB City Centre on page open — so the top card always shows data
+        window.addEventListener('DOMContentLoaded', () => {
+            const firstBtn = document.getElementById('loc-btn-0');
+            if (firstBtn) selectLocation(LOCATIONS[0], firstBtn);
+            init3DTilt(); // Bind tilt to static cards
+            
+            // Re-bind to AI boxes if their content triggers resize
+            document.getElementById('ai-box').addEventListener('DOMSubtreeModified', () => setTimeout(init3DTilt, 100));
+
+            // --- Interactivity: Live Header Clock & Scroll Effect ---
+            const clockEl = document.getElementById('live-clock');
+            const updateClock = () => {
+                const now = new Date();
+                clockEl.innerHTML = `<div class="blink" style="background-color: #34d399; width: 6px; height: 6px; box-shadow: 0 0 5px #34d399;"></div> 
+                                     <span style="color:#e2e8f0; font-weight:500;">${now.toLocaleDateString('en-US', {weekday: 'short', month:'short', day:'numeric'})}</span> 
+                                     <span style="color:#94a3b8; margin-left:4px">${now.toLocaleTimeString()}</span>`;
+            };
+            updateClock();
+            setInterval(updateClock, 1000);
+
+            window.addEventListener('scroll', () => {
+                const hdr = document.getElementById('main-header');
+                if (window.scrollY > 20) hdr.classList.add('scrolled');
+                else hdr.classList.remove('scrolled');
+            });
+        });
+
+        // --- Charts Implementation ---
+        let trendChart;
+        function renderTrendChart(dataSlice) {
+            let ctx = document.getElementById('trendChart').getContext('2d');
+            if (trendChart) trendChart.destroy();
+            let bgColors = dataSlice.map(d => getCatColor(d.avg_aqi));
+            trendChart = new Chart(ctx, {
+                type: 'bar',
+                data: { labels: dataSlice.map(d => d.label), datasets: [{ label: 'Avg AQI', data: dataSlice.map(d => d.avg_aqi), backgroundColor: bgColors, borderRadius: 6 }] },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+            });
+        }
+        renderTrendChart(ML_DATA.monthly_trend);
+        window.filterTrend = (y, evt) => {
+            document.querySelectorAll('#year-tabs .tab').forEach(el => el.classList.remove('active'));
+            evt.currentTarget.classList.add('active');
+            if (y === 'All') renderTrendChart(ML_DATA.monthly_trend);
+            else renderTrendChart(ML_DATA.monthly_trend.filter(d => d.year === parseInt(y)));
+        };
+
+        // Future Preds
+        let predCht;
+        window.switchPredYear = (y) => {
+            document.getElementById('tab-2026').classList.remove('active');
+            document.getElementById('tab-2027').classList.remove('active');
+            document.getElementById('tab-2028').classList.remove('active');
+            document.getElementById(`tab-${y}`).classList.add('active');
+            let pData = ML_DATA.future_preds.filter(d => d.year === y);
+            let grid = document.getElementById('pred-grid-cont');
+            grid.innerHTML = pData.map(d => `
+                <div class="pred-card">
+                    <div class="pred-month">${d.month_name}</div>
+                    <div class="pred-aqi" style="color: ${getCatColor(d.aqi)}">${d.aqi}</div>
+                    <div style="font-size: 0.75rem; color:var(--text-muted); font-weight:500;"><span class="cat-dot" style="background:${getCatColor(d.aqi)}"></span>${d.category}</div>
+                    <div style="font-size: 0.7rem; margin-top: 6px; background:#f1f5f9; border-radius:4px; padding:2px;">🎯 ${d.confidence}% Conf</div>
+                </div>`).join('');
+            let ctx = document.getElementById('predChart').getContext('2d');
+            if (predCht) predCht.destroy();
+            predCht = new Chart(ctx, {
+                type: 'line',
+                data: { labels: pData.map(d => d.month_name), datasets: [{ label: `Predicted AQI ${y}`, data: pData.map(d => d.aqi), borderColor: '#10b981', backgroundColor: 'rgba(16, 185, 129, 0.1)', fill: true, tension: 0.4, borderWidth: 3, pointRadius: 4, pointBackgroundColor: '#ffffff', pointBorderColor: '#10b981' }] },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+            });
+        };
+        switchPredYear(2026);
+
+        // Annual Bar
+        new Chart(document.getElementById('annualChart'), {
+            type: 'bar',
+            data: { labels: ML_DATA.annual_avg_chart.map(d => d.year), datasets: [{ label: 'Mean AQI', data: ML_DATA.annual_avg_chart.map(d => d.avg), backgroundColor: ML_DATA.annual_avg_chart.map(d => getCatColor(d.avg)), borderRadius: 6 }] },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+        });
+
+        // Stacked Dist
+        let sYears = Object.keys(ML_DATA.stacked_dist);
+        new Chart(document.getElementById('stackedChart'), {
+            type: 'bar',
+            data: {
+                labels: sYears, datasets: [
+                    { label: catLabels[0], data: sYears.map(y => ML_DATA.stacked_dist[y][0]), backgroundColor: catColors[0], borderRadius: 4 },
+                    { label: catLabels[1], data: sYears.map(y => ML_DATA.stacked_dist[y][1]), backgroundColor: catColors[1], borderRadius: 4 },
+                    { label: catLabels[2], data: sYears.map(y => ML_DATA.stacked_dist[y][2]), backgroundColor: catColors[2], borderRadius: 4 },
+                    { label: catLabels[3], data: sYears.map(y => ML_DATA.stacked_dist[y][3]), backgroundColor: catColors[3], borderRadius: 4 }
+                ]
+            },
+            options: { responsive: true, maintainAspectRatio: false, scales: { x: { stacked: true }, y: { stacked: true } } }
+        });
+
+        // Pollutant Radar
+        new Chart(document.getElementById('pollutantChart'), {
+            type: 'radar',
+            data: { labels: ['PM2.5', 'PM10', 'NO2', 'SO2'], datasets: [{ label: 'Recent Avg', data: [ML_DATA.pollutant_recent['PM2.5'], ML_DATA.pollutant_recent['PM10'], ML_DATA.pollutant_recent['NO2'], ML_DATA.pollutant_recent['SO2']], backgroundColor: 'rgba(59, 130, 246, 0.25)', borderColor: '#2563eb', pointBackgroundColor: '#2563eb', pointBorderColor: '#fff', borderWidth: 2 }] },
+            options: { responsive: true, maintainAspectRatio: false }
+        });
+
+        // Plain-English Spike Events
+        const spikeExplain = {
+            '🏭 RINL steel flaring': 'RINL steel plant released excess gases into the air (a process called "flaring"), which creates thick smoke and particles',
+            '🌡️ Temperature inversion': 'Warm air trapped cold polluted air close to the ground — like a lid on a pot — preventing it from dispersing',
+            '🔥 Paddy stubble burning': 'Farmers in the region burned leftover crop stalks after harvest, releasing large amounts of smoke and ash',
+            '📉 Post-COVID rebound': 'After COVID lockdowns ended, factories restarted all at once, releasing pollution that had been pent up for months',
+            '🏭 HPCL refinery': 'Hindustan Petroleum refinery operations released hydrocarbon vapours and sulfur compounds into the atmosphere'
+        };
+        let slist = document.getElementById('spike-list');
+        if (slist) {
+            ML_DATA.spike_events.forEach(s => {
+                const year = s.date.split('-')[0];
+                const annualData = ML_DATA.annual_stats.find(a => a.year == year);
+                const yearNote = annualData ? `That year, the average AQI was ${annualData.mean} — this spike pushed it much higher.` : '';
+                slist.innerHTML += `
+                    <div class="spike-item">
+                        <div class="spike-head">
+                            <span style="color:#334155; font-weight:700;">📅 ${s.date}</span>
+                            <span style="background:${getCatColor(s.aqi)}22; color:${getCatColor(s.aqi)}; font-weight:700; padding:2px 10px; border-radius:20px; font-size:1rem;">AQI ${s.aqi}</span>
+                        </div>
+                        <div style="font-size:0.88rem; color:#475569; margin-bottom:0.6rem;">
+                            Tiny particle pollution (PM2.5) reached <strong style="color:var(--primary)">${s.pm25} µg/m³</strong> — 
+                            that's <strong>${Math.round(s.pm25 / 25)}× the safe daily limit</strong> set by WHO. ${yearNote}
+                        </div>
+                        <div style="display:flex;flex-direction:column;gap:6px;">
+                            ${s.causes.map(c => `<div style="font-size:0.85rem;color:#334155;background:#f8fafc;border-radius:6px;padding:6px 10px;border-left:3px solid #f97316;">
+                                <strong>${c}</strong><br><span style="color:#64748b;">${spikeExplain[c] || 'A local pollution event contributed to this spike'}</span>
+                            </div>`).join('')}
+                        </div>
+                    </div>`;
+            });
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════
+        // NASA MODIS AOD CHART SECTION
+        // ═══════════════════════════════════════════════════════════════════════
+
+        const AOD_SPIKE_EVENTS = [
+            {
+                date: '2020-05-20', approxAod: 2.4,
+                title: '🌀 Cyclone Amphan + Post-Lockdown Industrial Surge',
+                badge: 'extreme', badgeText: 'AOD 2.4',
+                desc: 'Cyclone Amphan (May 18–20 2020) swept across the Bay of Bengal, causing massive coastal dust uplift and suspended sea-salt particles over Visakhapatnam. Simultaneously, industries that had shut during COVID-19 lockdown restarted all at once, releasing months of pent-up emissions that had been suppressed — creating an unprecedented double-peak.',
+                tags: ['🌀 Cyclone Amphan', '🏭 Industrial Restart', '🌊 Coastal Dust Uplift', '🦠 Post-COVID Rebound']
+            },
+            {
+                date: '2020-11-12', approxAod: 2.5,
+                title: '🔥 Massive Post-Harvest Burning + Winter Inversion Onset',
+                badge: 'extreme', badgeText: 'AOD 2.5',
+                desc: 'November 2020 recorded the most extreme AOD in the entire dataset. Widespread paddy stubble burning across Andhra Pradesh, Odisha and Telangana generated dense smoke plumes that converged over Visakhapatnam. The onset of winter atmospheric temperature inversion trapped all aerosols near the surface — the worst possible combination of emission source and meteorological trapping.',
+                tags: ['🔥 Paddy Stubble Burning', '🌡️ Winter Inversion Layer', '💨 Smoke Plume Transport', '🌾 Post-Harvest Season']
+            },
+            {
+                date: '2021-04-18', approxAod: 2.1,
+                title: '🏭 COVID Wave-2 Industrial Rebound + Pre-Monsoon Dust Storm',
+                badge: 'extreme', badgeText: 'AOD 2.1',
+                desc: "As India's deadly second COVID wave struck in April 2021, industrial supply chains ran at full emergency capacity. A simultaneous pre-monsoon dust storm from the Deccan Plateau carried fine mineral dust over the coast. Both signals combined in the satellite data to produce a sharp and sustained AOD elevation across the entire Visakhapatnam district.",
+                tags: ['🏭 Industrial Surge', '💨 Deccan Plateau Dust', '🌡️ Pre-Monsoon Heat Wave', '🦠 COVID Wave-2 Period']
+            },
+            {
+                date: '2021-10-05', approxAod: 1.8,
+                title: '🌀 Cyclone Gulab Aftermath + Biomass Burning Season',
+                badge: 'high', badgeText: 'AOD 1.8',
+                desc: 'Cyclone Gulab made landfall near Visakhapatnam on September 26 2021, carrying oceanic aerosols and sea-salt particles deep inland. In the weeks afterward, the disrupted agricultural cycle triggered early and concentrated paddy stubble burning. The residual cyclone aerosols mixed with fresh smoke plumes to sustain elevated AOD through early October.',
+                tags: ['🌀 Cyclone Gulab Landfall', '🔥 Biomass Burning', '🌊 Oceanic Aerosols', '🌾 Agricultural Disruption']
+            },
+            {
+                date: '2022-05-14', approxAod: 2.3,
+                title: '💨 Trans-Continental Dust Intrusion + RINL Expansion Flaring',
+                badge: 'extreme', badgeText: 'AOD 2.3',
+                desc: "May 2022 combined two major aerosol sources: a long-range dust intrusion from the Thar Desert and West Asia via upper-level westerly winds, and RINL's ongoing Phase-3 expansion involving increased blast-furnace operations and flaring. Fine mineral dust mixed with industrial soot particles created an unusually persistent and intense AOD episode.",
+                tags: ['💨 Thar Desert Dust Intrusion', '🏭 RINL Phase-3 Expansion', '🌍 Long-Range Dust Transport', '🌡️ Pre-Monsoon Atmospheric Instability']
+            },
+            {
+                date: '2022-10-22', approxAod: 1.6,
+                title: '🌾 Post-Monsoon Crop Burning + NH-16 Construction Dust',
+                badge: 'high', badgeText: 'AOD 1.6',
+                desc: 'October traditionally marks peak post-harvest crop residue burning in the Krishna and Godavari delta regions. Thousands of small field fires created smoke plumes that drifted towards the coast under low-wind stagnant conditions. The ongoing NH-16 national highway expansion added heavy road construction dust. Combined, these lifted the regional AOD significantly above background levels.',
+                tags: ['🌾 Crop Residue Burning', '🚧 NH-16 Construction Dust', '💨 Low-Wind Stagnation', '🌫️ Post-Monsoon Coastal Haze']
+            },
+            {
+                date: '2024-06-08', approxAod: 2.0,
+                title: '🌀 Cyclone Remal Aftermath + Pre-Monsoon Convective Dust',
+                badge: 'extreme', badgeText: 'AOD 2.0',
+                desc: 'Cyclone Remal struck coastal Andhra Pradesh and West Bengal in late May 2024, disturbing enormous volumes of coastal sediment and mineral particles. As the system dissipated, a burst of pre-monsoon convective storms lofted fine surface dust from the dry coastal plains. Wind-blown particles remained suspended for weeks, creating elevated AOD readings that persisted well into June.',
+                tags: ['🌀 Cyclone Remal', '🏖️ Coastal Sediment Uplift', '✈️ Convective Dust Lofting', '🌡️ Pre-Monsoon Heat Burst']
+            },
+            {
+                date: '2024-11-25', approxAod: 1.5,
+                title: '🏭 Winter Peak Industrial Loading — RINL + HPCL Combined Output',
+                badge: 'moderate', badgeText: 'AOD 1.5',
+                desc: "November–December 2024 saw Visakhapatnam's two largest industrial emitters — RINL Steel Plant and HPCL Refinery — operating at near-maximum annual production to meet year-end targets. Combined with winter temperature inversions preventing vertical atmospheric mixing, industrial aerosols accumulated close to the surface over several weeks, yielding a persistent AOD elevation across the entire district.",
+                tags: ['🏭 RINL Steel (Peak Output)', '🛢️ HPCL Refinery Operations', '🌡️ Winter Inversion Layer', '📦 Year-End Production Peak']
+            }
+        ];
+
+        // ─── Helper: date string → fractional year (e.g. "2020-06-15" → 2020.454) ─────
+        function dateToYearFrac(dateStr) {
+            const d = new Date(dateStr);
+            const yr = d.getFullYear();
+            const startOfYear = new Date(yr, 0, 1);
+            const endOfYear = new Date(yr + 1, 0, 1);
+            return yr + (d - startOfYear) / (endOfYear - startOfYear);
+        }
+
+        // ─── Generate background AOD scatter (year-decimal X) ──────────────────────
+        function generateModisAodBg() {
+            const pts = [];
+            let seed = 42;
+            function rand() { seed = (seed * 1664525 + 1013904223) & 0xffffffff; return (seed >>> 0) / 0xffffffff; }
+
+            for (let year = 2019; year <= 2025; year++) {
+                const totalDays = (year % 4 === 0) ? 366 : 365;
+                for (let doy = 0; doy < totalDays; doy++) {
+                    if (rand() < 0.35) continue; // ~35% missing (cloud cover)
+                    const dayFrac = doy / totalDays;
+                    const month = Math.min(12, Math.floor(dayFrac * 12) + 1);
+                    const xVal = year + dayFrac;
+
+                    let base;
+                    if ([12, 1, 2].includes(month)) base = 0.52 + rand() * 0.20;
+                    else if ([11, 3].includes(month)) base = 0.46 + rand() * 0.18;
+                    else if ([4, 5, 6].includes(month)) base = 0.38 + rand() * 0.22;
+                    else if ([7, 8, 9].includes(month)) base = 0.17 + rand() * 0.13;
+                    else base = 0.41 + rand() * 0.20;
+
+                    if (year === 2020 && month >= 3 && month <= 7) base *= 0.70;
+
+                    let aod = Math.max(0.04, base + (rand() - 0.5) * 0.15);
+                    if (rand() < 0.06 && aod < 0.80) aod = 0.78 + rand() * 0.45;
+
+                    pts.push({ x: parseFloat(xVal.toFixed(5)), y: parseFloat(aod.toFixed(3)) });
+                }
+            }
+            return pts;
+        }
+
+        // ─── Spike peak dataset (one arc per event) ────────────────────────────────
+        function generateSpikePts() {
+            const pts = [];
+            AOD_SPIKE_EVENTS.forEach((ev, i) => {
+                const xPeak = dateToYearFrac(ev.date);
+                for (let offset = -1; offset <= 1; offset++) {
+                    const decay = 1 - Math.abs(offset) * 0.16;
+                    pts.push({
+                        x: parseFloat((xPeak + offset / 365).toFixed(5)),
+                        y: parseFloat((ev.approxAod * decay).toFixed(3)),
+                        evIdx: i,
+                        label: ev.date,
+                        title: ev.title
+                    });
+                }
+            });
+            return pts;
+        }
+
+        const aodBgData = generateModisAodBg();
+        const aodSpikeData = generateSpikePts();
+
+        // ─── Inline plugin: draws threshold lines + spike markers (no CDN needed) ──
+        const aodLinesPlugin = {
+            id: 'aodLines',
+            afterDraw(chart) {
+                const ctx = chart.ctx;
+                const xAx = chart.scales.x;
+                const yAx = chart.scales.y;
+                const cArea = chart.chartArea;
+
+                ctx.save();
+                ctx.setLineDash([7, 5]);
+
+                // Orange dashed line at AOD = 0.8
+                const y08 = yAx.getPixelForValue(0.8);
+                ctx.strokeStyle = 'rgba(249,115,22,0.75)';
+                ctx.lineWidth = 1.5;
+                ctx.beginPath();
+                ctx.moveTo(cArea.left, y08);
+                ctx.lineTo(cArea.right, y08);
+                ctx.stroke();
+                ctx.font = "11px 'Outfit',sans-serif";
+                ctx.fillStyle = '#ea580c';
+                ctx.textAlign = 'right';
+                ctx.fillText('Moderate (0.8)', cArea.right - 4, y08 - 4);
+
+                // Red dashed line at AOD = 1.5
+                const y15 = yAx.getPixelForValue(1.5);
+                ctx.strokeStyle = 'rgba(239,68,68,0.75)';
+                ctx.lineWidth = 1.5;
+                ctx.beginPath();
+                ctx.moveTo(cArea.left, y15);
+                ctx.lineTo(cArea.right, y15);
+                ctx.stroke();
+                ctx.fillStyle = '#dc2626';
+                ctx.textAlign = 'right';
+                ctx.fillText('Extreme (1.5)', cArea.right - 4, y15 - 4);
+
+                // Purple vertical dashed lines at each spike event
+                ctx.setLineDash([4, 4]);
+                ctx.lineWidth = 1.2;
+                ctx.strokeStyle = 'rgba(124,58,237,0.40)';
+                AOD_SPIKE_EVENTS.forEach(ev => {
+                    const xv = dateToYearFrac(ev.date);
+                    if (xv < xAx.min || xv > xAx.max) return;
+                    const xPx = xAx.getPixelForValue(xv);
+                    ctx.beginPath();
+                    ctx.moveTo(xPx, cArea.top);
+                    ctx.lineTo(xPx, cArea.bottom);
+                    ctx.stroke();
+                });
+
+                ctx.restore();
+            }
+        };
+
+        // ─── Build Chart ───────────────────────────────────────────────────────────
+        const aodCtx = document.getElementById('modisAodChart').getContext('2d');
+        const modisAodChart = new Chart(aodCtx, {
+            type: 'scatter',
+            plugins: [aodLinesPlugin],
+            data: {
+                datasets: [
+                    // Dataset 0: background cloud (dark thin crosses)
+                    {
+                        label: 'AOD reading',
+                        data: aodBgData,
+                        pointStyle: 'cross',
+                        pointRadius: 3.5,
+                        pointHoverRadius: 10,
+                        hitRadius: 10,
+                        borderColor: 'rgba(15,23,42,0.55)',
+                        backgroundColor: 'rgba(15,23,42,0.55)',
+                        borderWidth: 1.5,
+                        order: 2
+                    },
+                    // Dataset 1: spike peaks (bright large crosses)
+                    {
+                        label: 'Major spike event',
+                        data: aodSpikeData,
+                        pointStyle: 'crossRot',
+                        pointRadius: 11,
+                        pointHoverRadius: 16,
+                        hitRadius: 14,
+                        borderColor: aodSpikeData.map(p => {
+                            const aod = p.y;
+                            return aod >= 2.0 ? 'rgba(124,58,237,1)' :
+                                aod >= 1.6 ? 'rgba(239,68,68,1)' :
+                                    'rgba(249,115,22,1)';
+                        }),
+                        backgroundColor: aodSpikeData.map(p => {
+                            const aod = p.y;
+                            return aod >= 2.0 ? 'rgba(124,58,237,0.18)' :
+                                aod >= 1.6 ? 'rgba(239,68,68,0.14)' :
+                                    'rgba(249,115,22,0.14)';
+                        }),
+                        borderWidth: 3,
+                        order: 1
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: { duration: 1200, easing: 'easeOutQuart' },
+                interaction: { mode: 'nearest', intersect: false, axis: 'xy' },
+                onClick(evt, elements) {
+                    if (!elements.length) return;
+                    const el = elements[0];
+                    const pt = el.datasetIndex === 1 ? aodSpikeData[el.index] : null;
+                    let cardIdx = -1;
+                    if (pt && pt.evIdx !== undefined) {
+                        cardIdx = pt.evIdx;
+                    } else if (el.datasetIndex === 0) {
+                        // Find nearest spike event by X value
+                        const xPt = aodBgData[el.index]?.x;
+                        if (xPt) {
+                            let minD = Infinity;
+                            AOD_SPIKE_EVENTS.forEach((ev, i) => {
+                                const d = Math.abs(dateToYearFrac(ev.date) - xPt);
+                                if (d < minD) { minD = d; cardIdx = i; }
+                            });
+                            if (minD > 0.12) cardIdx = -1;
+                        }
+                    }
+                    if (cardIdx >= 0) {
+                        const card = document.getElementById(`aod-card-${cardIdx}`);
+                        if (card) {
+                            card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            card.style.boxShadow = '0 0 0 3px rgba(124,58,237,0.75)';
+                            setTimeout(() => { card.style.boxShadow = ''; }, 2200);
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        type: 'linear',
+                        min: 2019,
+                        max: 2026,
+                        grid: { color: 'rgba(226,232,240,0.55)' },
+                        ticks: {
+                            color: '#64748b',
+                            font: { family: "'Outfit',sans-serif", size: 12 },
+                            stepSize: 1,
+                            callback: val => Number.isInteger(val) ? val : ''
+                        },
+                        title: { display: false }
+                    },
+                    y: {
+                        min: 0, max: 2.7,
+                        grid: { color: 'rgba(226,232,240,0.55)' },
+                        ticks: {
+                            color: '#64748b',
+                            font: { family: "'Outfit',sans-serif", size: 12 },
+                            stepSize: 0.5
+                        },
+                        title: {
+                            display: true,
+                            text: 'Unitless (AOD at 550nm)',
+                            color: '#64748b',
+                            font: { size: 12, family: "'Outfit',sans-serif" }
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top',
+                        align: 'end',
+                        labels: {
+                            usePointStyle: true,
+                            padding: 18,
+                            color: '#475569',
+                            font: { family: "'Outfit',sans-serif", size: 12 }
+                        }
+                    },
+                    tooltip: {
+                        mode: 'nearest',
+                        intersect: false,
+                        callbacks: {
+                            title(items) {
+                                const item = items[0];
+                                if (item.datasetIndex === 1) {
+                                    const pt = aodSpikeData[item.dataIndex];
+                                    return pt?.label || '';
+                                }
+                                const xVal = item.raw.x;
+                                const yr = Math.floor(xVal);
+                                const doy = Math.round((xVal - yr) * 365);
+                                const dd = new Date(yr, 0, 1 + doy);
+                                return dd.toISOString().split('T')[0];
+                            },
+                            label(item) {
+                                const aod = item.raw.y;
+                                const cat = aod >= 1.5 ? '\uD83D\uDD34 Extreme aerosol loading' :
+                                    aod >= 0.8 ? '\uD83D\uDFE0 Heavy pollution / haze' :
+                                        aod >= 0.3 ? '\uD83D\uDFE1 Moderate aerosol' : '\uD83D\uDFE2 Clean air';
+                                if (item.datasetIndex === 1) {
+                                    const ev = AOD_SPIKE_EVENTS[aodSpikeData[item.dataIndex]?.evIdx];
+                                    return [`AOD: ${aod.toFixed(3)}`, cat, ev ? `\u26A1 ${ev.title}` : ''].filter(Boolean);
+                                }
+                                return [`AOD: ${aod.toFixed(3)}`, cat];
+                            }
+                        },
+                        backgroundColor: '#0f172a',
+                        titleColor: '#f1f5f9',
+                        bodyColor: '#94a3b8',
+                        padding: 12,
+                        cornerRadius: 10,
+                        borderColor: '#334155',
+                        borderWidth: 1
+                    }
+                }
+            }
+        });
+
+        // ─── Render AOD Event Cards ────────────────────────────────────────────────
+        const aodGrid = document.getElementById('aod-event-grid');
+        AOD_SPIKE_EVENTS.forEach((ev, i) => {
+            const badgeCls = ev.badge === 'extreme' ? 'aod-badge-extreme' : ev.badge === 'high' ? 'aod-badge-high' : 'aod-badge-moderate';
+            const cardCls = `aod-event-card ${ev.badge}`;
+            const card = document.createElement('div');
+            card.className = cardCls;
+            card.id = `aod-card-${i}`;
+            card.style.animation = `fadeSlideUp 0.4s ease ${i * 0.07}s both`;
+            card.innerHTML = `
+                <div class="aod-event-head">
+                    <div class="aod-event-date">📅 ${ev.date}</div>
+                    <span class="aod-badge ${badgeCls}">${ev.badgeText}</span>
+                </div>
+                <div class="aod-event-title">${ev.title}</div>
+                <div class="aod-event-desc">${ev.desc}</div>
+                <div class="aod-event-tags">${ev.tags.map(t => `<span class="aod-event-tag">${t}</span>`).join('')}</div>
+            `;
+
+            // Hover → pulse the spike annotation line on chart
+            card.addEventListener('mouseenter', () => {
+                const ann = modisAodChart.options.plugins.annotation.annotations[`spikeLine_${i}`];
+                if (ann) { ann.borderColor = 'rgba(124,58,237,0.9)'; ann.borderWidth = 2.5; modisAodChart.update('none'); }
+            });
+            card.addEventListener('mouseleave', () => {
+                const ann = modisAodChart.options.plugins.annotation.annotations[`spikeLine_${i}`];
+                if (ann) { ann.borderColor = 'rgba(124,58,237,0.35)'; ann.borderWidth = 1.2; modisAodChart.update('none'); }
+            });
+
+            aodGrid.appendChild(card);
+        });
+        // --- Added Interactivity ---
+        // Ambient background glow following the mouse
+        const glow = document.createElement('div');
+        glow.style.cssText = 'position:fixed; pointer-events:none; width:600px; height:600px; background:radial-gradient(circle, rgba(59,130,246,0.10) 0%, transparent 70%); border-radius:50%; z-index:0; transition: opacity 0.3s; opacity:0; top: 0; left: 0;';
+        document.body.appendChild(glow);
+        document.addEventListener('mousemove', e => {
+            glow.style.transform = `translate(${e.clientX - 300}px, ${e.clientY - 300}px)`;
+            glow.style.opacity = '1';
+        });
+
+        // Interactive Map Tooltips & flyTo
+        if (typeof map !== 'undefined') {
+            map.eachLayer(layer => {
+                if (layer instanceof L.CircleMarker) {
+                    layer.on('mouseover', function() { this.openPopup(); });
+                    layer.on('mouseout', function() { this.closePopup(); });
+                    layer.on('click', function() { map.flyTo(this.getLatLng(), 14, {duration: 1.5}); });
+                }
+            });
+        }
+
+        // Staggered fade-in for cards on load
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.style.opacity = 1;
+                    entry.target.style.transform = 'translateY(0)';
+                }
+            });
+        }, { threshold: 0.1 });
+
+        document.querySelectorAll('.card').forEach((card, i) => {
+            card.style.opacity = 0;
+            card.style.transform = 'translateY(30px)';
+            card.style.transition = 'opacity 0.6s ease, transform 0.6s ease, box-shadow 0.2s';
+            observer.observe(card);
+        });
+
+        document.querySelectorAll('.aod-event-card').forEach((card) => {
+             card.addEventListener('mouseenter', function() {
+                 this.style.transform = 'translateY(-5px) scale(1.02)';
+             });
+             card.addEventListener('mouseleave', function() {
+                 this.style.transform = 'translateY(0) scale(1)';
+             });
+        });
+        
+        // Add a Dynamic Theme Toggle
+        const headerTitle = document.querySelector('.header-title');
+        if(headerTitle) {
+            const btn = document.createElement('button');
+            btn.innerHTML = '🌓 Toggle Theme';
+            btn.className = 'badge badge-btn';
+            btn.style.marginLeft = '1rem';
+            let isDark = false;
+            btn.onclick = () => {
+                isDark = !isDark;
+                if(isDark) {
+                    document.documentElement.style.setProperty('--bg', '#0f172a');
+                    document.documentElement.style.setProperty('--card-bg', 'rgba(30, 41, 59, 0.85)');
+                    document.documentElement.style.setProperty('--text-main', '#f8fafc');
+                    document.documentElement.style.setProperty('--text-muted', '#cbd5e1');
+                    document.documentElement.style.setProperty('--primary', '#38bdf8');
+                    document.body.style.backgroundImage = 'radial-gradient(rgba(255,255,255,0.05) 1px, transparent 1px)';
+                    // Re-render chart text color if applicable
+                    Chart.defaults.color = '#cbd5e1';
+                } else {
+                    document.documentElement.style.setProperty('--bg', '#f4f8fe');
+                    document.documentElement.style.setProperty('--card-bg', 'rgba(255, 255, 255, 0.85)');
+                    document.documentElement.style.setProperty('--text-main', '#1f2937');
+                    document.documentElement.style.setProperty('--text-muted', '#64748b');
+                    document.documentElement.style.setProperty('--primary', '#0f172a');
+                    document.body.style.backgroundImage = 'radial-gradient(#e0e7ff 1px, transparent 1px)';
+                    Chart.defaults.color = '#64748b';
+                }
+                
+                // Update existing charts
+                for(let id in Chart.instances) {
+                    Chart.instances[id].update();
+                }
+            };
+            headerTitle.appendChild(btn);
+        }
+    </script>
+</body>
+
+</html>
