@@ -1,0 +1,11 @@
+=== DIAGNOSTIC: Importing data_loader ===
+  OK: 12 districts, 10 vegetables
+
+=== DIAGNOSTIC: Importing ml_model ===
+  OK: Loaded existing model
+
+=== DIAGNOSTIC: Importing all routes ===
+  OK: All routes imported
+
+=== ALL CHECKS PASSED - Server should start ===
+SUCCESS 
